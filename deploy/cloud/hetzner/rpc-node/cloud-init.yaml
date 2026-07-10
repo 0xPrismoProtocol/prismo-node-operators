@@ -1,0 +1,37 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages: [docker.io, docker-compose-v2, jq, curl, git, nginx, certbot, python3-certbot-nginx]
+
+write_files:
+  - path: /etc/prismo/operator.env
+    permissions: '0640'
+    content: |
+      NETWORK=${network}
+      L1_RPC_URL=${l1_rpc_url}
+      ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
+
+runcmd:
+  # The hcloud_volume mounts at /mnt/HC_Volume_<id>; symlink it.
+  - |
+    sleep 30
+    VOL=$(ls /mnt | grep HC_Volume | head -1)
+    [ -n "$VOL" ] && ln -sfn "/mnt/$VOL" /var/lib/prismo
+
+  - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
+  - cp /etc/prismo/operator.env /opt/prismo-node-operators/deploy/docker-compose/rpc-node/.env
+
+  # Pre-create the named volume as a bind mount onto the data volume (reached
+  # via the /var/lib/prismo symlink above). Without this, `docker compose up`
+  # auto-creates `chaindata` as an anonymous local volume on the small root
+  # disk instead of the big hcloud_volume. The name must match
+  # docker-compose.yml's `name:` + volume key exactly
+  # (prismo-rpc-<network>_chaindata) so compose adopts this volume instead of
+  # creating its own.
+  - |
+    mkdir -p /var/lib/prismo/chaindata
+    docker volume create --driver local --opt type=none --opt o=bind \
+      --opt device=/var/lib/prismo/chaindata prismo-rpc-${network}_chaindata
+
+  - cd /opt/prismo-node-operators && bash scripts/compose.sh rpc-node up -d
+  - systemctl enable --now nginx

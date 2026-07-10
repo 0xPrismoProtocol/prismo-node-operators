@@ -1,0 +1,66 @@
+[Unit]
+Description=Prismo cdk-erigon RPC node
+Documentation=https://github.com/0xPrismoProtocol/prismo-node-operators
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=prismo
+Group=prismo
+WorkingDirectory=/var/lib/prismo
+# network.env: canonical per-network values (chain IDs, contracts, datastream host).
+# env: operator-editable (L1_RPC_URL, NETWORK, optional overrides). Wins on conflict.
+EnvironmentFile=/etc/prismo/network.env
+EnvironmentFile=/etc/prismo/env
+# cdk-erigon is musl-linked; install.sh extracts a matching loader + libstdc++
+# from the pinned ghcr image into this dir (see install.sh step 3) since the
+# host's own glibc/libstdc++6 can't satisfy a musl-ABI binary.
+Environment=LD_LIBRARY_PATH=/usr/local/lib/cdk-erigon
+ExecStart=/usr/local/bin/cdk-erigon \
+  --config=/etc/prismo/chain-config.yaml \
+  --datadir=/var/lib/prismo/data \
+  --chain=${L2_CHAIN_NAME} \
+  --zkevm.l2-chain-id=${L2_CHAIN_ID} \
+  --zkevm.l1-chain-id=${L1_CHAIN_ID} \
+  --zkevm.l1-first-block=${L1_FIRST_BLOCK} \
+  --zkevm.l1-rollup-id=${ROLLUP_ID} \
+  --zkevm.datastream-version=${DATASTREAM_VERSION} \
+  --zkevm.l1-rpc-url=${L1_RPC_URL} \
+  --zkevm.l2-datastreamer-url=${DATASTREAM_HOST}:${DATASTREAM_PORT} \
+  --zkevm.l2-sequencer-rpc-url=${SEQUENCER_RPC_URL} \
+  --zkevm.address-rollup=${ROLLUP_CONTRACT} \
+  --zkevm.address-zkevm=${ROLLUP_CONTRACT} \
+  --zkevm.address-ger-manager=${GER_MANAGER} \
+  --zkevm.l1-matic-contract-address=${GAS_TOKEN} \
+  --zkevm.address-sequencer=${SEQUENCER_EOA} \
+  --zkevm.address-admin=${ADMIN_EOA} \
+  --http.api=eth,net,web3,txpool,zkevm \
+  --http.addr=127.0.0.1 \
+  --http.port=8545 \
+  --metrics --metrics.addr=127.0.0.1 --metrics.port=9091
+
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+TimeoutStopSec=120
+
+# Hardening
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/prismo
+
+[Install]
+WantedBy=multi-user.target

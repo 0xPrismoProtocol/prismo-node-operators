@@ -1,0 +1,15 @@
+# SHA-256 of canonical config files. Regenerate via:
+#   (cd configs && { printf ...header...; find . -type f \( -name '*.json' -o -name '*.yaml' \) ! -name CHECKSUMS.txt | sort | xargs sha256sum; } > CHECKSUMS.txt)
+# Covers the network-agnostic chain-config.yaml, per-network env JSON, and the
+# per-network genesis/allocs/conf/chainspec mirrored from the canonical Prismo
+# chain config. testnet/* derives from the 2026-06-27 USDC re-genesis (genesis
+# root 0xc2d11ba9f21d1118d695a6462f9d2ee6cf809f18ca68900c0d55ef5d8375801d).
+# Verify: sha256sum -c CHECKSUMS.txt
+#
+be0a4c6d323ae4c5758967ac45758b0c32c8cedeb3a19cced86af74f5dc23cff  chain-config.yaml
+974ad4be7f7b31790542eca1d9de86d16c1992463972099b97eeb4c3494b7bfc  dynamic-glassnet-allocs.json
+9539d0c30b94fb08d283ca66d8300093eefd65234770a18561f8cfff81866e33  dynamic-glassnet-chainspec.json
+fda6bc3c4029a072c4be978a77313f7b2ecbbc53461cfe8fbb46f6324be03eef  dynamic-glassnet-conf.json
+b1ba4b60775c63b65f9974df19978d4ec9338d889389c39dc44f4026d5d5577d  networks/mainnet.json
+55c6d6d9e501f3d0eef1d6cc133fc1247890a63f12782bb5b62cdf300d2517bc  networks/testnet.json
+b9e444fbc9ab7956a94e5a34b4858150091f8f3feebbd0df99333eafac78a796  testnet/genesis.json

@@ -1,0 +1,52 @@
+name: prismo-monitoring
+
+# Optional: a standalone Prometheus for operators who don't already run one.
+#
+# Uses network_mode: host so Prometheus can reach the node's metrics ports at
+# 127.0.0.1:<port> — the node compose files (deploy/docker-compose/*/) bind
+# those ports to the HOST'S LOOPBACK ONLY (e.g. "127.0.0.1:9091:9091"), which
+# is deliberate (don't expose RPC/metrics beyond the host without a reverse
+# proxy). That loopback binding means a *sibling* container on a different
+# docker network cannot reach it via the docker0 bridge gateway, even with
+# host.docker.internal/extra_hosts wired up — verified live: with Prometheus
+# on its own bridge network hitting host.docker.internal:9091, every target
+# came back "connection refused" (that address resolves to the docker0
+# gateway IP, e.g. 172.17.0.1, which is not the loopback interface the port
+# is bound to). network_mode: host puts Prometheus directly in the host's
+# network namespace, so 127.0.0.1 inside the container really is the host's
+# loopback and the scrape succeeds.
+#
+# Linux-only (network_mode: host is not supported on Docker Desktop for
+# Mac/Windows — those users should run Prometheus directly on the host
+# instead, or relax the node's port bindings to 0.0.0.0 behind their own
+# firewall, which this repo deliberately does not do by default).
+#
+# Bring up alongside any node role, independently:
+#
+#   docker compose -f monitoring/docker-compose.monitoring.yml up -d
+#   curl -s http://127.0.0.1:9090/api/v1/targets | jq
+#
+# Not wired into scripts/compose.sh on purpose — it's cross-role (one
+# Prometheus can scrape rpc-node + watchtower + bridge-indexer on the same
+# host) rather than belonging to a single role's lifecycle.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prismo-prometheus
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert-rules.yaml:/etc/prometheus/alert-rules.yaml:ro
+      - prom-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # network_mode: host means the container's OWN --web.listen-address
+      # applies directly on the host — keep it loopback-only, same posture
+      # as the node ports it's scraping.
+      - --web.listen-address=127.0.0.1:9090
+
+volumes:
+  prom-data:

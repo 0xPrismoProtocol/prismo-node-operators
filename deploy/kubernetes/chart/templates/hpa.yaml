@@ -1,0 +1,27 @@
+{{- if .Values.autoscaling.enabled }}
+# See values.yaml "autoscaling" comment before enabling: each new replica of
+# this StatefulSet gets its OWN PersistentVolumeClaim and syncs from scratch
+# (or from a restored snapshot, if snapshot.enabled) — it is NOT a stateless
+# pool like the internal cdk-erigon-rpc Deployment+HPA.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "prismo-rpc-node.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "prismo-rpc-node.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ include "prismo-rpc-node.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

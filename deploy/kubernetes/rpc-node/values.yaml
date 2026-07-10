@@ -1,0 +1,124 @@
+# Helm values for a Prismo RPC node — testnet (dynamic-glassnet), wired to
+# the actual keys read by ../chart/values.yaml (deploy/kubernetes/chart).
+#
+# This is a values FILE, not a template: every key below is a real key the
+# chart's templates dereference directly (see chart/values.yaml for the full,
+# commented default set — this file only overrides the ones that differ
+# per-network or that you must supply yourself).
+#
+# Quickstart (from repo root):
+#   helm install prismo-rpc ./deploy/kubernetes/chart \
+#     -f deploy/kubernetes/rpc-node/values.yaml \
+#     -n prismo --create-namespace \
+#     --set config.l1RpcUrl="$L1_RPC_URL_SEPOLIA"
+#
+# Or use a Secret instead of --set (recommended so the URL, which may embed an
+# API key, never lands in `helm history`/release metadata in plaintext):
+#   kubectl create secret generic prismo-rpc-l1 -n prismo \
+#     --from-literal=url="$L1_RPC_URL_SEPOLIA"
+#   helm install prismo-rpc ./deploy/kubernetes/chart \
+#     -f deploy/kubernetes/rpc-node/values.yaml \
+#     -n prismo --create-namespace \
+#     --set config.l1RpcUrlSecret.name=prismo-rpc-l1 \
+#     --set config.l1RpcUrlSecret.key=url
+#
+# See deploy/kubernetes/rpc-node/README.md for the full walkthrough.
+
+network: testnet
+
+image:
+  repository: ghcr.io/0xpolygon/cdk-erigon
+  tag: v2.61.24
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+config:
+  chainName: dynamic-glassnet
+
+  l2ChainId: 101001000
+  l1ChainId: 11155111
+  l1FirstBlock: 11147580
+  rollupId: 1
+  datastreamVersion: 2
+
+  # Trusted sequencer's OWN RPC — never a public RPC tier. See chart/values.yaml
+  # for why (public tier answers 0x0, silently wedging sync at block 0).
+  sequencerRpcUrl: "https://sequencer.glassnet.prismo.network"
+
+  datastreamerHost: "datastream.glassnet.prismo.network"
+  datastreamerPort: 6900
+
+  # --- YOU MUST SUPPLY ONE OF THESE TWO ---
+  # There is no public default L1 RPC endpoint. Either:
+  #   --set config.l1RpcUrl=https://your-sepolia-endpoint
+  # or point at a Secret you created yourself (see quickstart above):
+  #   --set config.l1RpcUrlSecret.name=... --set config.l1RpcUrlSecret.key=...
+  l1RpcUrl: ""
+  l1RpcUrlSecret: {}
+
+  addressRollup: "0x920A41e4718639f0629407c9C14b0CaC9A266EF6"
+  addressGerManager: "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF"
+  l1MaticContractAddress: "0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b"
+  addressSequencer: "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795"
+  addressAdmin: "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795"
+
+  httpApi: "eth,net,web3,txpool,zkevm"
+
+  l1BlockRange: 2000
+  l1QueryDelay: 6000
+
+# Fresh-genesis-sync only — see chart/values.yaml. Testnet ships unpruned
+# (archive) by default, matching published snapshots.
+pruning:
+  enabled: false
+
+persistence:
+  enabled: true
+  storageClassName: ""   # empty = cluster default StorageClass
+  size: 200Gi             # see docs/01-hardware.md for growth-rate sizing
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 4Gi
+  limits:
+    cpu: "2"
+    memory: 8Gi
+
+service:
+  type: ClusterIP
+  ports:
+    rpc: 8545
+    ws: 8546
+    metrics: 9091
+
+ingress:
+  enabled: false   # bring your own TLS + rate-limit; see docs/04-security.md
+
+monitoring:
+  serviceMonitor:
+    enabled: false   # flip true if kube-prometheus-stack (or another
+                      # Prometheus Operator) is installed in this cluster
+
+podDisruptionBudget:
+  enabled: false
+
+autoscaling:
+  enabled: false   # see chart/values.yaml — each replica owns its own PVC
+
+# Restore from a published snapshot instead of syncing from genesis.
+# See docs/03-snapshots.md and chart/values.yaml.
+snapshot:
+  enabled: false
+  url: ""
+  sha256: ""
+
+# --- mainnet (TBD) ---
+# Mainnet contracts are not yet deployed. Once they are, populate a sibling
+# deploy/kubernetes/rpc-node/values-mainnet.yaml with the same key shape as
+# above (image.tag may differ; l1ChainId: 1; real L2 chain ID, contract
+# addresses, sequencer/datastream hosts) and pass it with an extra -f flag —
+# do NOT overload this file's keys with `network: mainnet`, since (unlike the
+# legacy pre-chart values.yaml this file replaces) this chart has no
+# `networks.<name>` switch: one values file == one network.

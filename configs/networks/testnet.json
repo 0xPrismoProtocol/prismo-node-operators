@@ -1,0 +1,33 @@
+{
+  "network": "testnet",
+  "l2_chain_id": 101001000,
+  "l2_chain_name": "dynamic-glassnet",
+  "l1_chain_id": 11155111,
+  "l1_chain_name": "sepolia",
+  "l1_first_block": 11147580,
+  "datastream_version": 2,
+  "rollup_id": 1,
+  "contracts": {
+    "rollup_manager": "0x920A41e4718639f0629407c9C14b0CaC9A266EF6",
+    "zkevm": "0x920A41e4718639f0629407c9C14b0CaC9A266EF6",
+    "rollup_etrog": "0xFfA25304376eE1274ff6A348400C03f444F22B95",
+    "ger_manager": "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF",
+    "gas_token": "0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b",
+    "sequencer_eoa": "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795",
+    "trusted_sequencer_l1": "0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08",
+    "admin_eoa": "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795",
+    "bridge_l1": "0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d",
+    "bridge_l2": "0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d"
+  },
+  "endpoints": {
+    "public_rpc": "https://rpc.glassnet.prismo.network",
+    "public_ws": "wss://rpc.glassnet.prismo.network",
+    "datastream": "datastream.glassnet.prismo.network:6900",
+    "bridge_api": "https://bridge.glassnet.prismo.network",
+    "explorer": "https://explorer.glassnet.prismo.network",
+    "faucet": "https://faucet.glassnet.prismo.network",
+    "snapshots_base": "https://snapshots.glassnet.prismo.network",
+    "snapshots_index": "https://snapshots.glassnet.prismo.network/index.json",
+    "sequencer_rpc": "https://sequencer.glassnet.prismo.network"
+  }
+}

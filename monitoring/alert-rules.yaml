@@ -1,0 +1,174 @@
+groups:
+  # ---------------------------------------------------------------------
+  # prismo-node — 100% REAL metrics only.
+  #
+  # Rewritten 2026-07-08: every rule below used to reference prismo_* series
+  # (prismo_head_block_timestamp, prismo_l1_target_block,
+  # prismo_l1_synced_block, prismo_bad_block_total, prismo_rpc_errors_total,
+  # node_filesystem_avail_bytes) that cdk-erigon does not expose — none of
+  # them ever existed on :9091, so none of these alerts could ever have
+  # fired. Metric names below were verified against a LIVE node
+  # (cdk-erigon v2.61.24) via:
+  #   curl -s http://127.0.0.1:9091/debug/metrics/prometheus \
+  #     | grep -oE '^[a-zA-Z_:][a-zA-Z0-9_:]*' | sort -u
+  # Full dump had 152 distinct families; see git history of this file's
+  # commit message / the F3 audit report for the complete list.
+  # ---------------------------------------------------------------------
+  - name: prismo-node
+    interval: 30s
+    rules:
+      # Real gauge: sync{stage="execution"} tracks the highest block number
+      # each sync stage has processed — the "execution" stage's value is
+      # effectively the node's chain head. increase()==0 over the window
+      # means the head hasn't moved (datastream/L1 sync stuck or dead).
+      - alert: PrismoNodeStalled
+        expr: increase(sync{stage="execution"}[10m]) == 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Prismo node execution stage hasn't advanced in 10m"
+          description: "{{ $labels.instance }} ({{ $externalLabels.network }}) chain head (sync{stage=\"execution\"}) has not increased in the last 10 minutes. Check sequencer datastream connectivity and L1 RPC."
+
+      # Real gauge: last_checked_l1_block is the highest L1 block the L1
+      # syncer has scanned for sequencing/verification events. There is no
+      # metric exposing the actual L1 chain head, so an exact "N blocks
+      # behind" figure (the old prismo_l1_target_block - prismo_l1_synced_block)
+      # is not derivable from this node's own metrics — this substitutes
+      # "the L1 syncer has stopped making progress at all", which is the
+      # actionable subset of the original intent (a throttled/dead L1 RPC).
+      - alert: PrismoNodeL1SyncStalled
+        expr: increase(last_checked_l1_block[15m]) == 0
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "L1 syncer has not advanced in 15m"
+          description: "{{ $labels.instance }} ({{ $externalLabels.network }}) last_checked_l1_block has not increased in 15 minutes. Likely a throttled or dead L1 RPC (see L1_RPC_URL)."
+
+      # Real counter: rpc_failure (direct replacement for prismo_rpc_errors_total).
+      - alert: PrismoNodeRPCErrors
+        expr: rate(rpc_failure[5m]) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "RPC error rate > 1/s for 5 min"
+          description: "{{ $labels.instance }} ({{ $externalLabels.network }}) rpc_failure rate is elevated — check client-side error logs."
+
+      # Scrape-down: distinct from PrismoNodeStalled — this fires when
+      # Prometheus can't reach :9091 at all (container down, crashed, network
+      # partition), vs. Stalled which fires when it CAN reach it but the
+      # chain head isn't moving.
+      - alert: PrismoNodeScrapeDown
+        expr: up{job="prismo-cdk-erigon"} == 0
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.instance }} ({{ $externalLabels.network }})"
+          description: "The cdk-erigon metrics endpoint has been unreachable for 5 minutes. Container crashed, network issue, or Prometheus misconfigured — check `docker ps` / container logs first."
+
+      # Real gauge: process_start_time_seconds changes whenever the process
+      # restarts (a fresh process gets a new start time). changes()>0 over a
+      # short window catches crashloops that `up` alone would miss if the
+      # process comes back up within one scrape interval.
+      - alert: PrismoNodeRestarted
+        expr: changes(process_start_time_seconds{job="prismo-cdk-erigon"}[15m]) > 0
+        labels: { severity: info }
+        annotations:
+          summary: "cdk-erigon process restarted on {{ $labels.instance }} ({{ $externalLabels.network }})"
+          description: "process_start_time_seconds changed in the last 15m. A single restart is often benign (deploy, host reboot); {{ $value }} restarts in 15m may indicate a crashloop — check container logs."
+
+      # --- Deleted, no real backing metric on this node (verified against
+      # the full 152-family dump above) ---
+      #
+      # PrismoNodeBadBlock (was: increase(prismo_bad_block_total[5m]) > 0):
+      #   cdk-erigon exposes no bad-block / invalid-block / state-divergence
+      #   counter. chain_autorewind_length (unwind depth) is the closest
+      #   real metric but measures something different (any unwind, not a
+      #   bad block) and is noisy on a healthy node during normal reorg
+      #   handling — not a safe substitute. Fraud / state-root-mismatch
+      #   detection is what the watchtower role's PrismoFraudDetected below
+      #   already covers (cross-checks against an independently computed
+      #   root); that is the correct place for this intent, not this node's
+      #   own self-reported metrics.
+      #
+      # PrismoNodeDiskFull (was: node_filesystem_avail_bytes ratio):
+      #   node_filesystem_avail_bytes is a node_exporter metric — no
+      #   node_exporter is deployed by any compose file in this repo, so
+      #   this series never existed as a Prometheus target here. cdk-erigon
+      #   itself only exposes db_size (a gauge tracking chaindata DB size in
+      #   bytes) which is NOT filesystem-free-space and cannot express a
+      #   "< 15% free" threshold. To restore this alert for real: run
+      #   node_exporter alongside the node (bind-mount the host path backing
+      #   the chaindata volume) and scrape it, then re-add a rule against
+      #   node_filesystem_avail_bytes/node_filesystem_size_bytes for that
+      #   mountpoint. Tracked as a follow-up, not fabricated here.
+
+  # ---------------------------------------------------------------------
+  # prismo-watchtower — ASPIRATIONAL. The watchtower binary
+  # (ghcr.io/0xprismoprotocol/watchtower:0.1.0) referenced by
+  # deploy/docker-compose/watchtower/ is still a placeholder image (see that
+  # role's README) — it does not yet emit any of the prismo_watchtower_*
+  # series these rules reference. None of the alerts in this group can fire
+  # on an RPC-only deployment (there is nothing scraping a watchtower here),
+  # and they will not fire even once a real watchtower binary exists until
+  # its actual metric names are confirmed against a running instance (the
+  # same "verify against a live target" pass done for prismo-node above).
+  # Left in place to preserve the intended alert design; do not treat as
+  # currently functional monitoring.
+  # ---------------------------------------------------------------------
+  - name: prismo-watchtower
+    rules:
+      - alert: PrismoFraudDetected
+        expr: prismo_watchtower_state_root_mismatch > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "WATCHTOWER: state root mismatch — investigate"
+          description: "L1-claimed root differs from local full-node-computed root. Page on-call. Corroborate with a second watchtower before public disclosure."
+
+      # Testnet seals batches at 1h idle (zkevm.sequencer-batch-seal-time=1h since the
+      # 2026-06-27 re-genesis), so SequenceBatches lands on L1 at best ~hourly — a 1h
+      # threshold would flap. 4h catches a dead sequence-sender without false alarms.
+      - alert: PrismoSequencerSilent
+        expr: time() - prismo_watchtower_last_sequence_batch_timestamp > 14400
+        labels: { severity: warning }
+        annotations:
+          summary: "No SequenceBatches event on L1 for 4h"
+
+      # Proving is windowed (prover scales up 02:00–06:00 UTC daily), so VerifyBatches
+      # events arrive in a daily burst. Alert only after more than a full day of silence.
+      - alert: PrismoVerifierSilent
+        expr: time() - prismo_watchtower_last_verify_batch_timestamp > 129600
+        labels: { severity: warning }
+        annotations:
+          summary: "No VerifyBatches event on L1 for 36h"
+          description: "Proofs normally land in the daily 02:00–06:00 UTC prover window. 36h of silence means a missed window — check with the Prismo team before assuming local indexing issues."
+
+      - alert: PrismoContractUpgrade
+        expr: increase(prismo_watchtower_contract_upgrade_total[10m]) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "Rollup contract upgraded — verify intent"
+
+  # ---------------------------------------------------------------------
+  # prismo-bridge — ASPIRATIONAL for the same reason as prismo-watchtower:
+  # these reference prismo_bridge_* / http_requests_total series that have
+  # not been confirmed against a running zkevm-bridge-service instance (the
+  # bridge-indexer compose stack was previously non-startable — see the F3
+  # audit fix that wired up its config templating — and its actual exposed
+  # metric names have not yet been captured the way prismo-node's were).
+  # Will not fire on an RPC-only deployment (no bridge-indexer scrape target
+  # is up). Re-verify metric names against a live bridge-service /metrics
+  # endpoint before relying on this group.
+  # ---------------------------------------------------------------------
+  - name: prismo-bridge
+    rules:
+      - alert: PrismoBridgeIndexerLag
+        expr: prismo_bridge_l1_chain_head - prismo_bridge_l1_indexed_block > 200
+        for: 15m
+        labels: { severity: warning }
+        annotations: { summary: "Bridge indexer L1 lag > 200 blocks" }
+
+      - alert: PrismoBridgeAPIErrors
+        expr: rate(http_requests_total{job="prismo-bridge-indexer",status=~"5.."}[5m]) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Bridge API 5xx > 1/s" }

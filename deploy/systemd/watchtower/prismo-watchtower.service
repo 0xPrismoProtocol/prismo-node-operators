@@ -1,0 +1,32 @@
+[Unit]
+Description=Prismo watchtower
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=prismo-watchtower
+Group=prismo-watchtower
+# network.env: canonical per-network values (chain ID, contracts, L1 first block).
+# env: operator-editable (NETWORK, L1/L2 RPC URLs, alert sinks). Wins on conflict.
+EnvironmentFile=/etc/prismo-watchtower/network.env
+EnvironmentFile=/etc/prismo-watchtower/env
+ExecStart=/usr/local/bin/prismo-watchtower --config=/etc/prismo-watchtower/config.yaml
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadWritePaths=/var/lib/prismo-watchtower
+
+[Install]
+WantedBy=multi-user.target

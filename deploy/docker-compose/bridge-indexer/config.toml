@@ -1,0 +1,34 @@
+# Values templated from configs/networks/${NETWORK}.env via scripts/compose.sh.
+# BRIDGE_L1 / BRIDGE_L2 are populated for testnet (2026-06-27 re-genesis); TBD on
+# mainnet until its contract deploy.
+
+[Log]
+Level = "info"
+Outputs = ["stdout"]
+
+[NetworkConfig]
+GenBlockNumber = ${L1_FIRST_BLOCK}
+PolygonBridgeAddress = "${BRIDGE_L1}"
+PolygonZkEVMGlobalExitRootAddress = "${GER_MANAGER}"
+PolygonRollupManagerAddress = "${ROLLUP_CONTRACT}"
+L2PolygonBridgeAddresses = ["${BRIDGE_L2}"]
+
+[Etherman]
+L1URL = "${L1_RPC_URL}"
+L2URLs = ["${L2_RPC_URL}"]
+
+[BridgeServer]
+GRPCPort = "9090"
+HTTPPort = "8080"
+
+  [BridgeServer.DB]
+  Database = "postgres"
+  User = "bridge"
+  Password = "${DB_PASS}"
+  Host = "postgres"
+  Port = "5432"
+  Name = "bridge"
+  MaxConns = 20
+
+[ClaimTxManager]
+Enabled = false

@@ -1,0 +1,56 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - jq
+  - curl
+  - git
+
+write_files:
+  - path: /etc/prismo/operator.env
+    permissions: '0640'
+    owner: root:root
+    content: |
+      NETWORK=${network}
+      L1_RPC_URL=${l1_rpc_url}
+      ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
+
+runcmd:
+  # 1. Format + mount the data disk at /var/lib/prismo (Azure attaches it as the large disk)
+  - |
+    DEV=$(lsblk -ndo NAME,SIZE | awk '$2 ~ /T/ && NR>1 {print $1; exit}')
+    [ -n "$DEV" ] && mkfs.ext4 -F /dev/$DEV && mkdir -p /var/lib/prismo
+    echo "/dev/$DEV /var/lib/prismo ext4 defaults,nofail 0 2" >> /etc/fstab
+    mount -a
+
+  # 2. Pull operator repo
+  - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
+
+  # 3. Build the role's .env from the canonical network env + operator overrides.
+  #    The full-node compose selects --sepolia/--mainnet from L1_NETWORK_FLAG in the network env.
+  - |
+    REPO=/opt/prismo-node-operators
+    ROLE_DIR=$REPO/deploy/docker-compose/full-node
+    cp /etc/prismo/operator.env $ROLE_DIR/.env
+
+  # 4. Pre-create the named volumes as bind mounts onto the data disk.
+  #    Without this, `docker compose up` auto-creates chaindata/l1-geth/l1-lh
+  #    as anonymous local volumes under /var/lib/docker on the ROOT disk, not
+  #    the big managed disk mounted at /var/lib/prismo in step 1 — L1 geth,
+  #    L1 lighthouse, and the L2 chaindata together are the whole reason for
+  #    that disk. Names must match docker-compose.yml's `name:` + volume keys
+  #    exactly (prismo-full-<network>_<volume>) so compose adopts them
+  #    instead of creating its own.
+  - |
+    mkdir -p /var/lib/prismo/chaindata /var/lib/prismo/l1-geth /var/lib/prismo/l1-lh
+    docker volume create --driver local --opt type=none --opt o=bind \
+      --opt device=/var/lib/prismo/chaindata prismo-full-${network}_chaindata
+    docker volume create --driver local --opt type=none --opt o=bind \
+      --opt device=/var/lib/prismo/l1-geth prismo-full-${network}_l1-geth
+    docker volume create --driver local --opt type=none --opt o=bind \
+      --opt device=/var/lib/prismo/l1-lh prismo-full-${network}_l1-lh
+
+  # 5. Bring up the stack via the wrapper
+  - cd /opt/prismo-node-operators && bash scripts/compose.sh full-node up -d

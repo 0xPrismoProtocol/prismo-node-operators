@@ -1,0 +1,36 @@
+# Full node (independent state-verifying node) — Kubernetes: NOT AVAILABLE.
+#
+# There is intentionally no working values file here, because the full-node
+# role CANNOT BOOT on cdk-erigon v2.61.24 — the same blocker documented for
+# the docker-compose target (deploy/docker-compose/full-node/README.md):
+# cdk-erigon v2.61.24 gates L1-only sync behind a sequencer-only flag, so
+# this role cannot run as an independent full node.
+#
+# Why: the flag that puts cdk-erigon into L1-only "don't trust the datastream"
+# mode (--zkevm.l1-sync-start-block) is gated in this binary behind
+# os.Getenv("CDK_ERIGON_SEQUENCER") == "1" (eth/backend.go:1044-1049 in the
+# 0xPolygon/cdk-erigon v2.61.24 tag). Any process with that flag set that is
+# NOT the actual trusted sequencer panics on boot:
+#     you cannot launch in l1 sync mode as an RPC node
+# Setting CDK_ERIGON_SEQUENCER=1 is not a workaround — it makes the process
+# behave as the real trusted sequencer (batch production, executor
+# requirements), which is unsafe for an operator-run verifying node.
+#
+# The previous version of this file carried keys (syncFromL1Only: true,
+# l2DatastreamerUrl: "", l1ContractAddressCheck: true) that promised a mode
+# the binary refuses to run AND that the vendored chart
+# (deploy/kubernetes/chart) does not even implement. They were removed rather
+# than left to mislead.
+#
+# ── Supported state-verification path TODAY ────────────────────────────────
+# Run an RPC node (deploy/kubernetes/rpc-node) PLUS a watchtower
+# (deploy/kubernetes/watchtower). The RPC node re-executes every block it
+# receives and will surface a BadBlock / state-root mismatch in its logs; the
+# watchtower independently watches the L1 RollupManager for misbehavior. That
+# pairing gives you independent detection without needing the sequencer-gated
+# L1-only mode. See docs/nodes/full-node.md and docs/nodes/watchtower.md.
+#
+# This role will be revisited if/when a cdk-erigon build exposes L1-only sync
+# to non-sequencer nodes. Do not add flags here without re-verifying against
+# that build — see deploy/docker-compose/full-node/README.md for the exact
+# source lines to check.

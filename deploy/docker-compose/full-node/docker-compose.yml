@@ -1,0 +1,151 @@
+name: prismo-full-${NETWORK:-testnet}
+
+# Full validating node + co-located L1 (geth + lighthouse).
+# Re-derives state from L1 only; does NOT trust the sequencer data stream.
+# L1 client follows L1_NETWORK_FLAG (--sepolia for testnet, --mainnet for mainnet)
+# from configs/networks/${NETWORK}.env.
+
+services:
+  # Fresh named volumes are root-owned; cdk-erigon runs as 10000:10000 and
+  # panics "mkdir /data/chaindata: permission denied" without this one-shot.
+  # (Same fix as deploy/docker-compose/rpc-node/docker-compose.yml.)
+  volume-init:
+    image: busybox:1.36
+    user: "0:0"
+    command: ["sh", "-c", "chown 10000:10000 /data"]
+    volumes:
+      - chaindata:/data
+    restart: "no"
+
+  geth:
+    image: ethereum/client-go:v1.14.12
+    container_name: prismo-l1-geth-${NETWORK:-testnet}
+    restart: unless-stopped
+    user: "10001:10001"
+    volumes:
+      - l1-geth:/root/.ethereum
+    ports:
+      - "127.0.0.1:8645:8545"   # L1 HTTP RPC, internal only
+      - "30303:30303/tcp"
+      - "30303:30303/udp"
+    command:
+      - "${L1_NETWORK_FLAG}"
+      - "--syncmode=snap"
+      - "--http"
+      - "--http.addr=0.0.0.0"
+      - "--http.api=eth,net,web3,engine"
+      - "--http.vhosts=*"
+      - "--authrpc.addr=0.0.0.0"
+      - "--authrpc.port=8551"
+      - "--authrpc.vhosts=*"
+      - "--authrpc.jwtsecret=/root/.ethereum/jwt.hex"
+      - "--metrics"
+
+  lighthouse:
+    image: sigp/lighthouse:v5.3.0
+    container_name: prismo-l1-lighthouse-${NETWORK:-testnet}
+    restart: unless-stopped
+    depends_on: [geth]
+    volumes:
+      - l1-lh:/root/.lighthouse
+      - l1-geth:/geth-data:ro
+    ports:
+      - "9000:9000/tcp"
+      - "9000:9000/udp"
+    command:
+      - "lighthouse"
+      - "bn"
+      - "--network=${L1_CHAIN_NAME}"
+      - "--checkpoint-sync-url=${L1_CHECKPOINT_SYNC_URL}"
+      - "--execution-endpoint=http://geth:8551"
+      - "--execution-jwt=/geth-data/jwt.hex"
+      - "--http"
+      - "--http-address=0.0.0.0"
+      - "--metrics"
+
+  cdk-erigon:
+    image: ghcr.io/0xpolygon/cdk-erigon:v2.61.24
+    container_name: prismo-cdk-erigon-${NETWORK:-testnet}
+    restart: unless-stopped
+    depends_on:
+      geth:
+        condition: service_started
+      volume-init:
+        condition: service_completed_successfully
+    user: "10000:10000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    ports:
+      - "127.0.0.1:8545:8545"
+      - "127.0.0.1:9091:9091"
+    volumes:
+      - chaindata:/data
+      - ../../../configs:/etc/prismo:ro
+    environment:
+      NETWORK:           ${NETWORK}
+      L2_CHAIN_ID:       ${L2_CHAIN_ID}
+      L2_CHAIN_NAME:     ${L2_CHAIN_NAME}
+      L1_CHAIN_ID:       ${L1_CHAIN_ID}
+      L1_FIRST_BLOCK:    ${L1_FIRST_BLOCK}
+      SEQUENCER_RPC_URL: ${SEQUENCER_RPC_URL}
+    command:
+      - "--config=/etc/prismo/chain-config.yaml"
+      - "--chain=${L2_CHAIN_NAME}"
+      - "--zkevm.l2-chain-id=${L2_CHAIN_ID}"
+      - "--zkevm.l1-chain-id=${L1_CHAIN_ID}"
+      - "--zkevm.l1-first-block=${L1_FIRST_BLOCK}"
+      - "--zkevm.l1-rollup-id=${ROLLUP_ID}"
+      - "--zkevm.datastream-version=${DATASTREAM_VERSION}"
+      - "--zkevm.l1-rpc-url=http://geth:8545"
+      # Must be non-empty — cdk-erigon panics "Flag not set:
+      # zkevm.l2-datastreamer-url" if this is blank (ctx.IsSet() treats an
+      # empty value as unset), even in L1-only mode. --zkevm.l1-sync-start-block
+      # below is what actually makes the datastream unused ("If set the
+      # datastream will not be used" per --help); this URL is only present to
+      # satisfy the flag-set check, not because this node trusts the stream.
+      - "--zkevm.l2-datastreamer-url=${DATASTREAM_HOST}:${DATASTREAM_PORT}"
+      # cdk-erigon hard-requires this flag (panics "Flag not set:
+      # zkevm.l2-sequencer-rpc-url" at startup) regardless of sync mode —
+      # verified empirically against v2.61.24. It is NOT optional even here.
+      - "--zkevm.l2-sequencer-rpc-url=${SEQUENCER_RPC_URL}"
+      # Real flag name (verified against --help on v2.61.24); the previous
+      # "--zkevm.sync-from-l1-only=true" does not exist on this binary and
+      # panics with "flag provided but not defined". --zkevm.l1-sync-start-block
+      # is the actual L1-recovery-mode switch.
+      #
+      # KNOWN BLOCKER even after this fix, confirmed by reading
+      # github.com/0xPolygon/cdk-erigon @ v2.61.24 eth/backend.go:1044-1049:
+      #   isSequencer := sequencer.IsSequencer()          // == os.Getenv("CDK_ERIGON_SEQUENCER") == "1"
+      #   if cfg.L1SyncStartBlock > 0 {
+      #       if !isSequencer { panic("you cannot launch in l1 sync mode as an RPC node") }
+      #   }
+      # i.e. --zkevm.l1-sync-start-block is a SEQUENCER-ONLY disaster-recovery
+      # mechanism in this cdk-erigon release, not a generic "independent
+      # verifying full node" capability — this container will panic on boot
+      # with that message no matter how the rest of the flags are set. Setting
+      # CDK_ERIGON_SEQUENCER=1 to work around it is NOT a fix: it makes this
+      # process behave as the real trusted sequencer (batch production,
+      # executor requirements) which is wrong and unsafe for this role. This
+      # needs a product/engineering decision upstream of a compose-file patch
+      # (track separately; do not silently paper over). Confirmed live via
+      # isolated container test 2026-07-08, not via running this stack.
+      - "--zkevm.l1-sync-start-block=${L1_FIRST_BLOCK}"
+      - "--zkevm.address-rollup=${ROLLUP_CONTRACT}"
+      - "--zkevm.address-zkevm=${ROLLUP_CONTRACT}"
+      - "--zkevm.address-ger-manager=${GER_MANAGER}"
+      - "--zkevm.l1-matic-contract-address=${GAS_TOKEN}"
+      - "--zkevm.address-sequencer=${SEQUENCER_EOA}"
+      - "--zkevm.address-admin=${ADMIN_EOA}"
+      - "--http.api=eth,net,web3,txpool,zkevm"
+      - "--http.addr=0.0.0.0"
+      - "--http.port=8545"
+      - "--metrics"
+      - "--metrics.addr=0.0.0.0"
+      - "--metrics.port=9091"
+
+volumes:
+  chaindata:
+  l1-geth:
+  l1-lh:

@@ -1,0 +1,56 @@
+# Prismo L2 — public node chain config (network-agnostic).
+# Per-network values (chain IDs, L1 first block, contract addresses) are NOT in
+# this file — they're injected as cdk-erigon CLI flags from
+# configs/networks/<NETWORK>.env at run time. See configs/networks/README.md.
+#
+# This file holds only flags that are identical across testnet and mainnet.
+
+datadir: /data
+http: true
+externalcl: true
+
+# --- Sync ---
+# 2000 keeps eth_getLogs spans within free/public L1 RPC limits (20000-block
+# spans get rejected -> "L1 syncer (getSequencedLogs) exceeded 20 retries"
+# panic). Raise if you run your own L1 node.
+zkevm.l1-block-range: 2000
+zkevm.l1-query-delay: 6000
+
+# --- Validation ---
+# Mirrors the live cluster: the fork-12 (banana) RollupManager does not serve
+# the legacy on-chain address getters this retrieval path calls — with either
+# flag on, startup panics "Failed to retrieve contract addresses from L1".
+# Addresses are pinned explicitly via the --zkevm.address-* flags instead.
+zkevm.l1-contract-address-check: false
+zkevm.l1-contract-address-retrieve: false
+
+# --- HTTP / API — public-safe defaults ---
+http.api: [eth, net, web3, txpool, zkevm]
+http.addr: 127.0.0.1
+http.port: 8545
+http.vhosts: any
+http.corsdomain: any
+ws: true
+
+# --- Metrics ---
+# 0.0.0.0 is the CONTAINER-internal bind — this config file's value beats any
+# --metrics.addr CLI flag passed by the compose files (verified live: with the
+# compose's --metrics.addr=0.0.0.0 flag present but this pinned to 127.0.0.1,
+# the host-side curl to the published port failed). Host-side exposure stays
+# local-only regardless, via the "127.0.0.1:9091:9091" port mapping in compose.
+metrics: true
+metrics.addr: 0.0.0.0
+metrics.port: 9091
+
+# --- Pruning: DISABLED by default (matches the reference RPC tier, and
+# REQUIRED for snapshot restores — published snapshots come from an unpruned
+# datadir and erigon hard-refuses prune-mode changes on an existing DB:
+# "not allowed change of --prune flag"). To prune, uncomment for a FRESH
+# genesis sync only. Flag names verified against cdk-erigon v2.61.24:
+# categories are single letters h/r/t/c (+ .older values) — the
+# prune.history/receipt/txindex/calltrace spellings do not exist.
+# prune: hrtc
+# prune.h.older: 90000
+# prune.r.older: 90000
+# prune.t.older: 90000
+# prune.c.older: 90000

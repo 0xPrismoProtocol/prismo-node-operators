@@ -1,0 +1,23 @@
+# env files (operators put real secrets here)
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Logs and local data
+*.log
+data/
+chaindata/

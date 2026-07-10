@@ -1,0 +1,32 @@
+{
+  "network": "mainnet",
+  "l2_chain_id": "TBD",
+  "l2_chain_name": "TBD",
+  "l1_chain_id": 1,
+  "l1_chain_name": "mainnet",
+  "l1_first_block": "TBD",
+  "datastream_version": 2,
+  "rollup_id": "TBD",
+  "contracts": {
+    "rollup_manager": "TBD",
+    "zkevm": "TBD",
+    "ger_manager": "TBD",
+    "gas_token": "TBD",
+    "sequencer_eoa": "TBD",
+    "trusted_sequencer_l1": "TBD",
+    "admin_eoa": "TBD",
+    "bridge_l1": "TBD",
+    "bridge_l2": "TBD"
+  },
+  "endpoints": {
+    "public_rpc": "https://rpc.prismo.example",
+    "public_ws": "wss://rpc.prismo.example/ws",
+    "datastream": "datastream.mainnet.prismo.example:6900",
+    "bridge_api": "https://bridge.prismo.example",
+    "explorer": "https://explorer.prismo.example",
+    "faucet": "n/a",
+    "snapshots_base": "https://snapshots.prismo.example",
+    "snapshots_index": "https://snapshots.prismo.example/index.json",
+    "sequencer_rpc": "TBD"
+  }
+}

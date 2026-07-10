@@ -1,0 +1,37 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - jq
+  - curl
+  - git
+
+write_files:
+  - path: /etc/prismo/operator.env
+    permissions: '0640'
+    owner: root:root
+    content: |
+      NETWORK=${network}
+      L1_RPC_URL=${l1_rpc_url}
+      L2_RPC_URL=${l2_rpc_url}
+      DB_PASS=${db_password}
+      ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
+
+runcmd:
+  # 1. Pull operator repo (bridge state lives in the managed Postgres, not on a local disk)
+  - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
+
+  # 2. Build the role's .env from the canonical network env + operator overrides.
+  #    deploy/docker-compose/bridge-indexer only consumes DB_PASS (Host/User/
+  #    Name/Port are hard-coded to the bundled `postgres` compose service in
+  #    config.toml) plus L2_RPC_URL for Etherman.L2URLs — DB_HOST/DB_PORT/
+  #    DB_NAME/DB_USER/DB_PASSWORD are not read by the stack at all.
+  - |
+    REPO=/opt/prismo-node-operators
+    ROLE_DIR=$REPO/deploy/docker-compose/bridge-indexer
+    cp /etc/prismo/operator.env $ROLE_DIR/.env
+
+  # 3. Bring up the stack via the wrapper
+  - cd /opt/prismo-node-operators && bash scripts/compose.sh bridge-indexer up -d

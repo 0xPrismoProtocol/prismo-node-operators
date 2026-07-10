@@ -1,0 +1,57 @@
+# ── NO HELM CHART SHIPS FOR THE WATCHTOWER YET ─────────────────────────────
+# Unlike the RPC node (which now has a real vendored chart at
+# deploy/kubernetes/chart), there is no chart for the watchtower in this repo.
+# The values below are a forward-looking sketch of the keys such a chart would
+# read — they do NOT install anything on their own (`helm install ./chart`
+# with this file just renders the RPC-node chart, which ignores these keys).
+#
+# The supported deploy path for the watchtower today is Docker Compose:
+#   deploy/docker-compose/watchtower/  (see its README)
+# For Kubernetes, hand-roll a small Deployment + Secret using the fields below
+# until a chart is published, or run the compose stack on a host.
+# NOTE: ghcr.io/0xprismoprotocol/watchtower:0.1.0 is still a placeholder image
+# — the watchtower binary is not open-sourced yet, so this image does not
+# resolve. See docs/nodes/watchtower.md for details (this role is
+# documentation-only until it ships).
+# ───────────────────────────────────────────────────────────────────────────
+
+network: testnet     # or mainnet
+
+networks:
+  testnet:
+    l2ChainId: 101001000
+    l1FirstBlock: 11147580
+    contracts:
+      rollup: "0x920A41e4718639f0629407c9C14b0CaC9A266EF6"
+      gerManager: "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF"
+  mainnet:
+    l2ChainId: TBD
+    l1FirstBlock: TBD
+    contracts:
+      rollup: TBD
+      gerManager: TBD
+
+image:
+  repository: ghcr.io/0xprismoprotocol/watchtower
+  tag: "0.1.0"
+
+replicaCount: 1
+
+resources:
+  requests: { cpu: "100m", memory: "128Mi" }
+  limits:   { cpu: "500m", memory: "512Mi" }
+
+config:
+  finalityBlocks: 64
+
+# Provide via Secret. The chart should default L2_RPC_URL to a same-cluster full node
+# in the matching network's namespace.
+env:
+  L1_RPC_URL: ""
+  L2_RPC_URL: "http://prismo-full.operator-testnet.svc.cluster.local:8545"
+  SLACK_WEBHOOK_URL: ""
+  DISCORD_WEBHOOK_URL: ""
+
+monitoring:
+  serviceMonitor:
+    enabled: true

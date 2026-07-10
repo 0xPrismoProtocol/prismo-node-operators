@@ -1,0 +1,29 @@
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+# Requires the Prometheus Operator CRDs (monitoring.coreos.com/v1) already
+# installed in-cluster — e.g. via kube-prometheus-stack. `helm template` will
+# happily render this even without the CRDs present; `helm install`/`apply`
+# will fail if they aren't, since this is a genuine CRD, not a built-in kind.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "prismo-rpc-node.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "prismo-rpc-node.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "prismo-rpc-node.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+      # cdk-erigon (erigon-based) serves Prometheus metrics at this path,
+      # NOT /metrics.
+      path: /debug/metrics/prometheus
+{{- end }}

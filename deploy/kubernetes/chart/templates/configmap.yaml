@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prismo-rpc-node.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "prismo-rpc-node.labels" . | nindent 4 }}
+data:
+  # cdk-erigon config file. Canonical flag source: this repo's
+  # deploy/docker-compose/rpc-node/docker-compose.yml (command list) +
+  # configs/chain-config.yaml (network-agnostic flags), merged into one file
+  # for the ConfigMap. zkevm.l1-rpc-url is deliberately NOT here — it's
+  # appended to the container command line at runtime from an env var so a
+  # Secret-sourced L1 endpoint never lands in this (plaintext) ConfigMap; see
+  # templates/statefulset.yaml.
+  config.yaml: |
+    # --- Chain / Network ---
+    chain: {{ required "config.chainName is required" .Values.config.chainName }}
+    datadir: /data
+    http: true
+    externalcl: true
+
+    # --- L2 ---
+    zkevm.l2-chain-id: {{ required "config.l2ChainId is required" .Values.config.l2ChainId | int64 }}
+    # MUST be the trusted sequencer's own RPC — see values.yaml comment above
+    # config.sequencerRpcUrl for why a public RPC tier here silently wedges
+    # sync at block 0.
+    zkevm.l2-sequencer-rpc-url: {{ required "config.sequencerRpcUrl is required" .Values.config.sequencerRpcUrl }}
+    zkevm.l2-datastreamer-url: {{ required "config.datastreamerHost is required" .Values.config.datastreamerHost }}:{{ required "config.datastreamerPort is required" .Values.config.datastreamerPort | int64 }}
+    zkevm.datastream-version: {{ required "config.datastreamVersion is required" .Values.config.datastreamVersion | int64 }}
+
+    # --- L1 ---
+    zkevm.l1-chain-id: {{ required "config.l1ChainId is required" .Values.config.l1ChainId | int64 }}
+    zkevm.l1-first-block: {{ required "config.l1FirstBlock is required" .Values.config.l1FirstBlock | int64 }}
+    zkevm.l1-rollup-id: {{ required "config.rollupId is required" .Values.config.rollupId | int64 }}
+    # 2000 keeps eth_getLogs spans within free/public L1 RPC provider limits
+    # (matches configs/chain-config.yaml); raise if you run your own L1 node.
+    zkevm.l1-block-range: {{ .Values.config.l1BlockRange | int64 }}
+    zkevm.l1-query-delay: {{ .Values.config.l1QueryDelay | int64 }}
+
+    # --- L1 contract addresses ---
+    # addressRollup feeds BOTH flags below — cdk-erigon wants the
+    # RollupManager here, not the per-rollup consensus (Etrog) contract.
+    zkevm.address-rollup: "{{ required "config.addressRollup is required" .Values.config.addressRollup }}"
+    zkevm.address-zkevm: "{{ .Values.config.addressRollup }}"
+    zkevm.address-ger-manager: "{{ required "config.addressGerManager is required" .Values.config.addressGerManager }}"
+    zkevm.l1-matic-contract-address: "{{ required "config.l1MaticContractAddress is required" .Values.config.l1MaticContractAddress }}"
+    zkevm.address-sequencer: "{{ required "config.addressSequencer is required" .Values.config.addressSequencer }}"
+    zkevm.address-admin: "{{ required "config.addressAdmin is required" .Values.config.addressAdmin }}"
+
+    # --- Validation ---
+    # fork-12 RollupManager doesn't serve the legacy on-chain address getters
+    # this retrieval path calls; startup panics "Failed to retrieve contract
+    # addresses from L1" with either flag on. Addresses are pinned explicitly
+    # above instead. Ground truth: MUST be false.
+    zkevm.l1-contract-address-check: false
+    zkevm.l1-contract-address-retrieve: false
+
+    # --- HTTP / API ---
+    http.api: [{{ .Values.config.httpApi }}]
+    # 0.0.0.0 — NOT the docker-compose/chain-config.yaml canonical default of
+    # 127.0.0.1. A Kubernetes Service/kube-proxy DNATs to the pod IP, not to a
+    # docker-published loopback port, so a loopback-bound listener would be
+    # unreachable through the Service (same class of bug that made WS and
+    # metrics dead-on-arrival in the compose deploy before the F3 audit fix).
+    http.addr: 0.0.0.0
+    http.port: {{ .Values.service.ports.rpc }}
+    http.vhosts: any
+    http.corsdomain: any
+    ws: true
+    ws.addr: 0.0.0.0
+    ws.port: {{ .Values.service.ports.ws }}
+
+    # --- Metrics ---
+    metrics: true
+    metrics.addr: 0.0.0.0
+    metrics.port: {{ .Values.service.ports.metrics }}
+    {{- if .Values.pruning.enabled }}
+
+    # --- Pruning (opt-in, FRESH GENESIS SYNC ONLY) ---
+    # cdk-erigon hard-refuses to change --prune mode on an existing datadir
+    # ("not allowed change of --prune flag"); published snapshots are
+    # unpruned. Do not flip this on for a running or snapshot-restored
+    # volume. Categories are the single letters h/r/t/c — prune.history /
+    # prune.receipt / prune.txindex / prune.calltrace are NOT real flags on
+    # cdk-erigon v2.61.24 and are silently no-ops.
+    prune: hrtc
+    prune.h.older: {{ .Values.pruning.olderBlocks | int64 }}
+    prune.r.older: {{ .Values.pruning.olderBlocks | int64 }}
+    prune.t.older: {{ .Values.pruning.olderBlocks | int64 }}
+    prune.c.older: {{ .Values.pruning.olderBlocks | int64 }}
+    {{- end }}
+
+  # Chain files — MUST sit next to config.yaml (cdk-erigon resolves
+  # dynamic-<chain>-*.json relative to the --config file's directory).
+  # Mirrored byte-for-byte from configs/dynamic-glassnet-*.json via
+  # .Files.Get — see files/README.md and sync-chart-files.sh for how these
+  # stay in sync, and configs/CHECKSUMS.txt to verify them independently.
+  {{ .Values.config.chainName }}-allocs.json: |
+{{ .Files.Get "files/dynamic-glassnet-allocs.json" | indent 4 }}
+  {{ .Values.config.chainName }}-conf.json: |
+{{ .Files.Get "files/dynamic-glassnet-conf.json" | indent 4 }}
+  {{ .Values.config.chainName }}-chainspec.json: |
+{{ .Files.Get "files/dynamic-glassnet-chainspec.json" | indent 4 }}

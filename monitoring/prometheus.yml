@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    # Set to 'testnet' or 'mainnet' so multi-network setups can route alerts per network.
+    network: testnet
+
+# Target host: 127.0.0.1. This works whether Prometheus runs on bare metal OR
+# via ../monitoring/docker-compose.monitoring.yml (that compose file runs
+# Prometheus with network_mode: host specifically so 127.0.0.1 here means the
+# real host loopback). All of this stack's node roles publish their metrics
+# ports as 127.0.0.1:<port> on the host (see
+# deploy/docker-compose/*/docker-compose.yml) — deliberately loopback-only,
+# not exposed on the docker0 bridge — so a sibling container on its own
+# bridge network (the default `docker compose up` topology) CANNOT reach
+# these targets via host.docker.internal/extra_hosts: that address resolves
+# to the bridge gateway IP, not the loopback interface the ports are bound
+# to. Verified live: that combination scraped as "connection refused" on
+# every target. network_mode: host is what makes this actually work.
+scrape_configs:
+  - job_name: prismo-cdk-erigon
+    metrics_path: /debug/metrics/prometheus
+    static_configs:
+      - targets: ['127.0.0.1:9091']
+        labels:
+          role: rpc-node    # set to full-node on full nodes
+
+  - job_name: prismo-watchtower
+    static_configs:
+      - targets: ['127.0.0.1:9092']
+
+  - job_name: prismo-bridge-indexer
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['127.0.0.1:8080']
+
+rule_files:
+  - alert-rules.yaml

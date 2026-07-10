@@ -1,0 +1,28 @@
+# All addresses, chain IDs, and the L1 first block are templated from
+# configs/networks/${NETWORK}.env via the watchtower process's environment.
+# scripts/compose.sh sources both files before starting the container.
+
+l1:
+  rpc_url: "${L1_RPC_URL}"
+  rollup_contract: "${ROLLUP_CONTRACT}"
+  ger_manager:     "${GER_MANAGER}"
+  start_block:     "${L1_FIRST_BLOCK}"
+  poll_interval_seconds: 12
+  finality_blocks: 64
+
+l2:
+  rpc_url: "${L2_RPC_URL}"
+  expected_chain_id: "${L2_CHAIN_ID}"
+
+alerts:
+  webhooks:
+    - url: "${SLACK_WEBHOOK_URL}"
+      type: slack
+    - url: "${DISCORD_WEBHOOK_URL}"
+      type: discord
+  cooldown_seconds: 300
+
+severity_routing:
+  fraud_detected: page
+  upgrade: page
+  sequencer_silent_minutes: 60

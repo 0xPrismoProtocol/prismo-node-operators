@@ -1,0 +1,87 @@
+name: prismo-bridge-${NETWORK:-testnet}
+
+services:
+  # config.toml (in this directory) is a TEMPLATE — it has literal
+  # ${L1_FIRST_BLOCK}-style placeholders that Docker Compose's own variable
+  # interpolation does NOT expand inside bind-mounted file *contents* (only
+  # inside the compose YAML itself). Render it via envsubst into a shared
+  # volume before bridge-service starts; without this step bridge-service
+  # boots with the literal, unexpanded "${...}" strings in its config and
+  # fails (this compose stack has never been startable before this fix).
+  config-init:
+    image: alpine:3.20
+    container_name: prismo-bridge-config-init-${NETWORK:-testnet}
+    restart: "no"
+    environment:
+      L1_FIRST_BLOCK:  ${L1_FIRST_BLOCK}
+      BRIDGE_L1:       ${BRIDGE_L1}
+      GER_MANAGER:     ${GER_MANAGER}
+      ROLLUP_CONTRACT: ${ROLLUP_CONTRACT}
+      BRIDGE_L2:       ${BRIDGE_L2}
+      L1_RPC_URL:      ${L1_RPC_URL}
+      L2_RPC_URL:      ${L2_RPC_URL}
+      DB_PASS:         ${DB_PASS}
+    volumes:
+      - ./config.toml:/template/config.toml:ro
+      - bridge-config:/rendered
+    command:
+      - sh
+      - -c
+      - >
+        set -eu &&
+        apk add --no-cache gettext >/dev/null &&
+        envsubst
+        '$${L1_FIRST_BLOCK} $${BRIDGE_L1} $${GER_MANAGER} $${ROLLUP_CONTRACT} $${BRIDGE_L2} $${L1_RPC_URL} $${L2_RPC_URL} $${DB_PASS}'
+        < /template/config.toml > /rendered/config.toml &&
+        echo "rendered /rendered/config.toml:" &&
+        cat /rendered/config.toml
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: prismo-bridge-pg-${NETWORK:-testnet}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     bridge
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB:       bridge
+    volumes:
+      - bridge-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bridge"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  bridge-service:
+    image: hermeznetwork/zkevm-bridge-service:v0.6.2-RC3
+    container_name: prismo-bridge-service-${NETWORK:-testnet}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-init:
+        condition: service_completed_successfully
+    user: "10003:10003"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - bridge-config:/etc/bridge:ro
+    environment:
+      NETWORK:          ${NETWORK}
+      L1_RPC_URL:       ${L1_RPC_URL}
+      L2_RPC_URL:       ${L2_RPC_URL}
+      L1_FIRST_BLOCK:   ${L1_FIRST_BLOCK}
+      ROLLUP_CONTRACT:  ${ROLLUP_CONTRACT}
+      GER_MANAGER:      ${GER_MANAGER}
+      BRIDGE_L1:        ${BRIDGE_L1}
+      BRIDGE_L2:        ${BRIDGE_L2}
+      DB_PASS:          ${DB_PASS}
+    command: ["run", "--cfg=/etc/bridge/config.toml"]
+
+volumes:
+  bridge-pg:
+  bridge-config:

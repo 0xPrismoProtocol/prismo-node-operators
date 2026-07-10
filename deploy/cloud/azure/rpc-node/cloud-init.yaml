@@ -1,0 +1,60 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - jq
+  - curl
+  - git
+  - nginx
+  - certbot
+  - python3-certbot-nginx
+
+write_files:
+  - path: /etc/prismo/operator.env
+    permissions: '0640'
+    owner: root:root
+    content: |
+      NETWORK=${network}
+      L1_RPC_URL=${l1_rpc_url}
+      ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
+
+runcmd:
+  # 1. Format + mount the data disk at /var/lib/prismo (Azure attaches it as the 1 TB disk)
+  - |
+    DEV=$(lsblk -ndo NAME,SIZE | awk '$2 ~ /T/ && NR>1 {print $1; exit}')
+    [ -n "$DEV" ] && mkfs.ext4 -F /dev/$DEV && mkdir -p /var/lib/prismo
+    echo "/dev/$DEV /var/lib/prismo ext4 defaults,nofail 0 2" >> /etc/fstab
+    mount -a
+
+  # 2. Pull operator repo
+  - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
+
+  # 3. Build the role's .env from the canonical network env + operator overrides
+  - |
+    REPO=/opt/prismo-node-operators
+    ROLE_DIR=$REPO/deploy/docker-compose/rpc-node
+    cat $REPO/configs/networks/${network}.env $REPO/../etc/prismo/operator.env 2>/dev/null \
+      || true
+    cp /etc/prismo/operator.env $ROLE_DIR/.env
+
+  # 4. Pre-create the named volume as a bind mount onto the data disk.
+  #    Without this, `docker compose up` auto-creates `chaindata` as an
+  #    anonymous local volume under /var/lib/docker on the ROOT disk, not the
+  #    big managed disk mounted at /var/lib/prismo in step 1 — chaindata
+  #    would silently fill the small root disk instead. The name must match
+  #    docker-compose.yml's `name:` + volume key exactly
+  #    (prismo-rpc-<network>_chaindata) so compose adopts this volume instead
+  #    of creating its own.
+  - |
+    mkdir -p /var/lib/prismo/chaindata
+    docker volume create --driver local --opt type=none --opt o=bind \
+      --opt device=/var/lib/prismo/chaindata prismo-rpc-${network}_chaindata
+
+  # 5. Bring up the stack via the wrapper
+  - cd /opt/prismo-node-operators && bash scripts/compose.sh rpc-node up -d
+
+  # 6. Nginx + TLS — operator must run certbot post-boot once DNS is set:
+  #    certbot --nginx -d rpc.your-domain.example
+  - systemctl enable --now nginx

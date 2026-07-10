@@ -1,0 +1,63 @@
+# ── NO HELM CHART SHIPS FOR THE BRIDGE INDEXER YET ─────────────────────────
+# Unlike the RPC node (which now has a real vendored chart at
+# deploy/kubernetes/chart), there is no chart for the bridge indexer in this
+# repo. The values below are a forward-looking sketch of the keys such a chart
+# would read — they do NOT install anything on their own (`helm install
+# ./chart` with this file just renders the RPC-node chart, which ignores these
+# keys).
+#
+# The supported deploy path for the bridge indexer today is Docker Compose:
+#   deploy/docker-compose/bridge-indexer/  (see its README)
+# For Kubernetes, hand-roll a Deployment + Postgres (managed, for prod/mainnet)
+# + Secrets using the fields below, or reference upstream
+# polygonzkevm/zkevm-bridge-service manifests, until a chart is published.
+# ───────────────────────────────────────────────────────────────────────────
+
+network: testnet     # or mainnet
+
+networks:
+  testnet:
+    l1FirstBlock: 11147580
+    contracts:
+      rollupManager: "0x920A41e4718639f0629407c9C14b0CaC9A266EF6"
+      gerManager:    "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF"
+      bridgeL1: "0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d"
+      bridgeL2: "0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d"
+  mainnet:
+    l1FirstBlock: TBD
+    contracts:
+      rollupManager: TBD
+      gerManager:    TBD
+      bridgeL1: TBD
+      bridgeL2: TBD
+
+image:
+  repository: hermeznetwork/zkevm-bridge-service
+  tag: v0.6.2-RC3
+
+replicaCount: 2     # stateless API tier, DB shared
+
+resources:
+  requests: { cpu: "500m", memory: "512Mi" }
+  limits:   { cpu: "2",    memory: "2Gi" }
+
+postgres:
+  # Use external managed Postgres (RDS, CloudSQL, etc) in production, especially mainnet.
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    name: bridge
+    user: bridge
+    existingSecret: bridge-pg
+
+env:
+  L1_RPC_URL: ""
+  L2_RPC_URL: "http://prismo-rpc.operator-testnet.svc.cluster.local:8545"
+
+ingress:
+  enabled: false   # bring your own with TLS + rate limit
+
+monitoring:
+  serviceMonitor:
+    enabled: true

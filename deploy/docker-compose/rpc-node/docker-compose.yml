@@ -1,0 +1,85 @@
+name: prismo-rpc-${NETWORK:-testnet}
+
+services:
+  # Fresh named volumes are root-owned; cdk-erigon runs as 10000:10000 and
+  # panics "mkdir /data/chaindata: permission denied" without this one-shot.
+  volume-init:
+    image: busybox:1.36
+    user: "0:0"
+    command: ["sh", "-c", "chown 10000:10000 /data"]
+    volumes:
+      - chaindata:/data
+    restart: "no"
+
+  cdk-erigon:
+    image: ghcr.io/0xpolygon/cdk-erigon:v2.61.24
+    container_name: prismo-cdk-erigon-${NETWORK:-testnet}
+    restart: unless-stopped
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    user: "10000:10000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    ports:
+      - "127.0.0.1:8545:8545"   # JSON-RPC — bind localhost, expose via reverse proxy
+      - "127.0.0.1:8546:8546"   # WebSocket
+      - "127.0.0.1:9091:9091"   # Prometheus metrics
+    volumes:
+      - chaindata:/data
+      - ../../../configs:/etc/prismo:ro
+    environment:
+      NETWORK:          ${NETWORK}
+      L1_RPC_URL:       ${L1_RPC_URL}
+      L2_CHAIN_ID:      ${L2_CHAIN_ID}
+      L2_CHAIN_NAME:    ${L2_CHAIN_NAME}
+      L1_CHAIN_ID:      ${L1_CHAIN_ID}
+      L1_FIRST_BLOCK:   ${L1_FIRST_BLOCK}
+      DATASTREAM_HOST:  ${DATASTREAM_HOST}
+      DATASTREAM_PORT:  ${DATASTREAM_PORT}
+      SEQUENCER_RPC_URL: ${SEQUENCER_RPC_URL}
+    command:
+      - "--config=/etc/prismo/chain-config.yaml"
+      - "--chain=${L2_CHAIN_NAME}"
+      - "--zkevm.l2-chain-id=${L2_CHAIN_ID}"
+      - "--zkevm.l1-chain-id=${L1_CHAIN_ID}"
+      - "--zkevm.l1-first-block=${L1_FIRST_BLOCK}"
+      - "--zkevm.l1-rollup-id=${ROLLUP_ID}"
+      - "--zkevm.datastream-version=${DATASTREAM_VERSION}"
+      - "--zkevm.l1-rpc-url=${L1_RPC_URL}"
+      - "--zkevm.l2-datastreamer-url=${DATASTREAM_HOST}:${DATASTREAM_PORT}"
+      - "--zkevm.l2-sequencer-rpc-url=${SEQUENCER_RPC_URL}"
+      - "--zkevm.address-rollup=${ROLLUP_CONTRACT}"
+      - "--zkevm.address-zkevm=${ROLLUP_CONTRACT}"
+      - "--zkevm.address-ger-manager=${GER_MANAGER}"
+      - "--zkevm.l1-matic-contract-address=${GAS_TOKEN}"
+      - "--zkevm.address-sequencer=${SEQUENCER_EOA}"
+      - "--zkevm.address-admin=${ADMIN_EOA}"
+      - "--http.api=eth,net,web3,txpool,zkevm"
+      - "--http.addr=0.0.0.0"
+      - "--http.port=8545"
+      - "--ws"
+      - "--ws.addr=0.0.0.0"   # default is "localhost" (container-internal) — verified via --help; without this the WS listener is unreachable through the port mapping
+      - "--ws.port=8546"
+      - "--metrics"
+      - "--metrics.addr=0.0.0.0"
+      - "--metrics.port=9091"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --post-data='{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' --header='Content-Type:application/json' http://127.0.0.1:8545 | grep -q '\"result\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 30G
+        reservations:
+          memory: 16G
+
+volumes:
+  chaindata:

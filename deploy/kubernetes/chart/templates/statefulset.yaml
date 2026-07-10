@@ -1,0 +1,195 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "prismo-rpc-node.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "prismo-rpc-node.labels" . | nindent 4 }}
+spec:
+  # StatefulSet + a PVC per replica, not a Deployment + emptyDir (the internal
+  # cdk-erigon-rpc chart's shape) — see chart README "Design notes" for the
+  # full justification. Short version: this chart is meant to be run
+  # standalone by an outsider, often as a single node, and archive datadirs
+  # are large (unpruned by default, ~150 GB/month growth per
+  # docs/01-hardware.md) and slow to rebuild; losing the datadir on every pod
+  # reschedule is the wrong tradeoff outside a cluster with a fast,
+  # low-latency internal datastream to resync from.
+  serviceName: {{ include "prismo-rpc-node.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  # RollingUpdate default for StatefulSet already terminates-then-creates
+  # per-ordinal (no surge), which fits a node that owns its own PVC.
+  selector:
+    matchLabels:
+      {{- include "prismo-rpc-node.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "prismo-rpc-node.labels" . | nindent 8 }}
+      annotations:
+        # cdk-erigon (erigon-based) serves Prometheus metrics at this path,
+        # NOT /metrics.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.service.ports.metrics | quote }}
+        prometheus.io/path: "/debug/metrics/prometheus"
+        # Forces a rollout when only the ConfigMap content changes (chain
+        # files/config.yaml are keyed on Values, not on a content hash of
+        # files/, but this at least covers values-driven config changes).
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.snapshot.enabled }}
+      initContainers:
+        - name: restore-snapshot
+          # DELIBERATE, NARROW EXCEPTION to this chart's PodSecurity-restricted
+          # posture: this step needs root to `apk add` zstd/curl (not present
+          # in stock alpine) and to chown the restored tree to the runtime
+          # UID, mirroring the proven restore pattern in docs/03-snapshots.md.
+          # A namespace that ENFORCES the `restricted` Pod Security Standard
+          # will reject this pod while snapshot.enabled=true — either relax
+          # that namespace's enforcement for the one-time restore, or use the
+          # "Manual PVC populate" option in docs/03-snapshots.md instead (a
+          # throwaway pod, outside this chart, run once before your first
+          # `helm install`).
+          image: {{ .Values.snapshot.image }}
+          securityContext:
+            # runAsNonRoot MUST be explicitly false here — the pod-level
+            # securityContext above sets runAsNonRoot: true, and a container
+            # that doesn't override it while setting runAsUser: 0 is an
+            # invalid combination: kubelet refuses to start it
+            # ("container's runAsUser breaks non-root policy"), even in a
+            # namespace that isn't enforcing Pod Security admission at all.
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              if [ -n "$(ls -A /data 2>/dev/null)" ]; then
+                echo "restore-snapshot: /data is already populated, skipping restore"
+                exit 0
+              fi
+              apk add -q --no-cache zstd curl
+              echo "Downloading $SNAPSHOT_URL ..."
+              curl -fSL --retry 3 "$SNAPSHOT_URL" -o /tmp/snapshot.tar.zst
+              echo "Verifying sha256 ..."
+              echo "$SNAPSHOT_SHA256  /tmp/snapshot.tar.zst" | sha256sum -c -
+              echo "Extracting into /data ..."
+              unzstd -c /tmp/snapshot.tar.zst | tar -xf - -C /data
+              rm -f /tmp/snapshot.tar.zst
+              chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.runAsGroup }} /data
+              echo "restore-snapshot: done"
+          env:
+            - name: SNAPSHOT_URL
+              value: {{ required "snapshot.url is required when snapshot.enabled=true" .Values.snapshot.url | quote }}
+            - name: SNAPSHOT_SHA256
+              value: {{ required "snapshot.sha256 is required when snapshot.enabled=true" .Values.snapshot.sha256 | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      {{- end }}
+      containers:
+        - name: cdk-erigon
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          # Image ENTRYPOINT is the cdk-erigon binary (matches
+          # docker-compose.yml, which supplies only flags in `command:`).
+          args:
+            - --config=/etc/prismo/config.yaml
+            # zkevm.l1-rpc-url is deliberately absent from config.yaml (see
+            # templates/configmap.yaml) and injected here via Kubernetes'
+            # native $(VAR) command/args substitution, so a Secret-sourced
+            # value never lands in a plaintext ConfigMap.
+            - --zkevm.l1-rpc-url=$(L1_RPC_URL)
+          env:
+            - name: L1_RPC_URL
+              {{- if include "prismo-rpc-node.hasL1RpcSecret" . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.l1RpcUrlSecret.name }}
+                  key: {{ .Values.config.l1RpcUrlSecret.key }}
+              {{- else }}
+              value: {{ .Values.config.l1RpcUrl | quote }}
+              {{- end }}
+          ports:
+            - name: rpc
+              containerPort: {{ .Values.service.ports.rpc }}
+            - name: ws
+              containerPort: {{ .Values.service.ports.ws }}
+            - name: metrics
+              containerPort: {{ .Values.service.ports.metrics }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: rpc
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: rpc
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            # config.yaml + the dynamic-<chain>-{allocs,conf,chainspec}.json
+            # files must sit in the SAME directory — cdk-erigon resolves the
+            # chain files relative to --config's directory.
+            - name: config
+              mountPath: /etc/prismo
+              readOnly: true
+            - name: data
+              mountPath: /data
+            # readOnlyRootFilesystem needs a writable /tmp (matches the
+            # `tmpfs: [/tmp]` mount in docker-compose.yml).
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "prismo-rpc-node.fullname" . }}-config
+        - name: tmp
+          emptyDir: {}
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "prismo-rpc-node.selectorLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.accessModes | nindent 10 }}
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

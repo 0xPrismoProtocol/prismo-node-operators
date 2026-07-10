@@ -1,0 +1,178 @@
+# Default values for prismo-rpc-node.
+#
+# These defaults are the REAL Prismo testnet values (dynamic-glassnet) —
+# copied from configs/networks/testnet.env — so `helm lint` / `helm template`
+# render a working config with zero overrides, and `required` guards below
+# don't trip on a blank default. For an explicit, documented, per-network
+# values file (with a mainnet TBD block), use
+# deploy/kubernetes/rpc-node/values.yaml as your -f override — see the
+# top-level README quickstart. Only l1RpcUrl needs to be supplied by you
+# (there is no public default value for that one).
+#
+# Canonical source of truth for every --zkevm.* / http.* / ws.* / metrics.*
+# flag below: deploy/docker-compose/rpc-node/docker-compose.yml (command list)
+# + configs/chain-config.yaml. Two deliberate deviations from that canonical
+# set, both required for correctness inside a Kubernetes pod network
+# namespace (see chart README "Design notes"):
+#   1. http.addr is 0.0.0.0 here, not the compose's 127.0.0.1 default docs
+#      pattern — a Kubernetes Service/kube-proxy DNATs to the pod IP, not to
+#      a docker-published loopback port, so a loopback-bound listener would
+#      be unreachable (same class of bug the WS/metrics binds hit in
+#      practice — see docs/nodes/rpc-node.md and the F3 audit notes).
+#   2. No nginx WS-proxy sidecar (the internal cdk-erigon-rpc chart has one,
+#      for stripping the browser Origin header). This chart exposes cdk-erigon's
+#      WS listener directly via ws.addr=0.0.0.0 — proven live over a raw
+#      WebSocket handshake in the F3 audit. Add a sidecar yourself if you need
+#      to serve browser dApp clients that send an Origin header.
+
+# Optional label only: does not change any rendered flag. Chart config is
+# read from `config.*` below, which you set directly per network (see
+# deploy/kubernetes/rpc-node/values.yaml). Surfaced as a pod label so you can
+# tell testnet/mainnet pods apart in `kubectl get pods --show-labels`.
+network: ""
+
+image:
+  repository: ghcr.io/0xpolygon/cdk-erigon
+  tag: v2.61.24
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# -- Chain / cdk-erigon config. Rendered into the ConfigMap's config.yaml. --
+config:
+  # --chain flag. MUST match the dynamic-<chainName>-{allocs,conf,chainspec}.json
+  # filenames bundled under chart/files/ — see files/README.md.
+  chainName: dynamic-glassnet
+
+  l2ChainId: 101001000
+  l1ChainId: 11155111
+  l1FirstBlock: 11147580
+  rollupId: 1
+  datastreamVersion: 2
+
+  # cdk-erigon RPC mode HARD-REQUIRES this (panics without it). It MUST be the
+  # trusted sequencer's OWN RPC, not a public RPC tier — nodes resolve chain
+  # head via zkevm_getLatestDataStreamBlock against this URL and trust any
+  # successful answer; the public RPC tier answers 0x0 without erroring,
+  # silently wedging external nodes at block 0 (verified live 2026-07-07,
+  # see configs/networks/testnet.env).
+  sequencerRpcUrl: "https://sequencer.glassnet.prismo.network"
+
+  # host:port (no scheme) of the public data-stream relay.
+  datastreamerHost: "datastream.glassnet.prismo.network"
+  datastreamerPort: 6900
+
+  # L1 RPC — never rendered into the ConfigMap (see templates/configmap.yaml);
+  # it's always injected as a runtime env var and appended to the container's
+  # command line, so a Secret-sourced key never lands in plaintext k8s
+  # objects. Set exactly one of these two. l1RpcUrlSecret wins if both are set.
+  l1RpcUrl: ""
+  l1RpcUrlSecret: {}
+    # name: my-l1-rpc-secret
+    # key: url
+
+  # L1 contract addresses (see configs/networks/testnet.env upstream).
+  addressRollup: "0x920A41e4718639f0629407c9C14b0CaC9A266EF6"  # feeds BOTH zkevm.address-rollup and zkevm.address-zkevm (RollupManager, not the per-rollup Etrog)
+  addressGerManager: "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF"
+  l1MaticContractAddress: "0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b" # gas-token address; flag name is a legacy holdover
+  addressSequencer: "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795"
+  addressAdmin: "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795"
+
+  httpApi: "eth,net,web3,txpool,zkevm"
+
+  # Matches configs/chain-config.yaml. Lower if your L1 RPC provider caps
+  # eth_getLogs span (2000 keeps free-tier providers happy); raise if you run
+  # your own L1 node.
+  l1BlockRange: 2000
+  l1QueryDelay: 6000
+
+# Opt-in pruning — FRESH GENESIS SYNC ONLY. cdk-erigon hard-refuses to change
+# --prune mode on an existing datadir, and published snapshots are unpruned,
+# so enabling this after first boot (or on a snapshot-restored volume) is not
+# supported. See docs/nodes/rpc-node.md#pruning-vs-archive.
+pruning:
+  enabled: false
+  olderBlocks: 90000
+
+persistence:
+  enabled: true
+  storageClassName: ""   # empty = cluster default StorageClass
+  accessModes: ["ReadWriteOnce"]
+  size: 200Gi             # see docs/01-hardware.md for growth-rate sizing
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 4Gi
+  limits:
+    cpu: "2"
+    memory: 8Gi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10000
+  runAsGroup: 10000
+  fsGroup: 10000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+service:
+  type: ClusterIP
+  ports:
+    rpc: 8545
+    ws: 8546
+    metrics: 9091
+
+ingress:
+  enabled: false   # bring your own TLS + rate-limit; see docs/04-security.md
+  className: ""
+  annotations: {}
+  hosts:
+    - host: rpc.example.invalid
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # - secretName: rpc-tls
+  #   hosts:
+  #     - rpc.example.invalid
+
+monitoring:
+  serviceMonitor:
+    enabled: false   # requires the Prometheus Operator CRDs in-cluster
+    interval: 30s
+    # Many kube-prometheus-stack installs only pick up ServiceMonitors
+    # carrying their release label, e.g. { release: kube-prometheus-stack }.
+    labels: {}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+autoscaling:
+  # A chain node is not a stateless request handler: each new StatefulSet
+  # replica gets its OWN PersistentVolumeClaim and must sync from genesis (or
+  # a restored snapshot, if snapshot.enabled) before it can serve traffic.
+  # Leave disabled unless you understand that tradeoff. Off by default.
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+# Restore a published chain-data snapshot via an init container instead of
+# syncing from genesis. See docs/03-snapshots.md.
+snapshot:
+  enabled: false
+  url: ""
+  sha256: ""
+  image: alpine:3.20
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

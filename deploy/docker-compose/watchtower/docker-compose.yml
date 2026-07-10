@@ -1,0 +1,32 @@
+name: prismo-watchtower-${NETWORK:-testnet}
+
+services:
+  watchtower:
+    # Reference impl. Replace with a community-maintained image once published.
+    image: ghcr.io/0xprismoprotocol/watchtower:0.1.0
+    container_name: prismo-watchtower-${NETWORK:-testnet}
+    restart: unless-stopped
+    user: "10002:10002"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    volumes:
+      - ./config.yaml:/etc/watchtower/config.yaml:ro
+      - watchtower-state:/var/lib/watchtower
+    environment:
+      NETWORK:             ${NETWORK}
+      L1_RPC_URL:          ${L1_RPC_URL}
+      L2_RPC_URL:          ${L2_RPC_URL}
+      L2_CHAIN_ID:         ${L2_CHAIN_ID}
+      L1_FIRST_BLOCK:      ${L1_FIRST_BLOCK}
+      ROLLUP_CONTRACT:     ${ROLLUP_CONTRACT}
+      GER_MANAGER:         ${GER_MANAGER}
+      SLACK_WEBHOOK_URL:   ${SLACK_WEBHOOK_URL:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+    command: ["--config=/etc/watchtower/config.yaml"]
+    ports:
+      - "127.0.0.1:9092:9092"   # metrics
+
+volumes:
+  watchtower-state:

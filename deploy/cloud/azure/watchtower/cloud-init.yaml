@@ -1,0 +1,31 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - jq
+  - curl
+  - git
+
+write_files:
+  - path: /etc/prismo/operator.env
+    permissions: '0640'
+    owner: root:root
+    content: |
+      NETWORK=${network}
+      L1_RPC_URL=${l1_rpc_url}
+      L2_RPC_URL=${l2_rpc_url}
+
+runcmd:
+  # 1. Pull operator repo (no data disk — watchtower keeps no chain state)
+  - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
+
+  # 2. Build the role's .env from the canonical network env + operator overrides
+  - |
+    REPO=/opt/prismo-node-operators
+    ROLE_DIR=$REPO/deploy/docker-compose/watchtower
+    cp /etc/prismo/operator.env $ROLE_DIR/.env
+
+  # 3. Bring up the stack via the wrapper
+  - cd /opt/prismo-node-operators && bash scripts/compose.sh watchtower up -d
