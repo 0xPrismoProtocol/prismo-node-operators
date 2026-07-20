@@ -29,7 +29,8 @@ terraform apply \
 terraform apply \
   -var "network=mainnet" \
   -var "ssh_public_key=$(cat ~/.ssh/id_ed25519.pub)" \
-  -var "l1_rpc_url=https://mainnet.example/your-key"
+  -var "l1_rpc_url=https://mainnet.example/your-key" \
+  -var 'allowed_ssh_cidrs=["YOUR.IP.HERE/32"]'
 ```
 
 To run both: use a separate Terraform workspace per network (`terraform workspace new mainnet`). The resource-group name already carries `${network}`, so the two never collide.

@@ -13,13 +13,15 @@ terraform init
 terraform apply \
   -var "network=testnet" \
   -var "ssh_key_name=my-hetzner-key" \
-  -var "l1_rpc_url=https://sepolia.example/your-key"
+  -var "l1_rpc_url=https://sepolia.example/your-key" \
+  -var 'allowed_ssh_cidrs=["YOUR.IP.HERE/32"]'
 
 # Mainnet
 terraform apply \
   -var "network=mainnet" \
   -var "ssh_key_name=my-hetzner-key" \
-  -var "l1_rpc_url=https://mainnet.example/your-key"
+  -var "l1_rpc_url=https://mainnet.example/your-key" \
+  -var 'allowed_ssh_cidrs=["YOUR.IP.HERE/32"]'
 ```
 
 Then DNS + certbot like the AWS variant.

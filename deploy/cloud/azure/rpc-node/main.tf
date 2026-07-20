@@ -36,8 +36,12 @@ variable "ssh_public_key" {
 }
 
 variable "allowed_ssh_cidrs" {
-  type    = list(string)
-  default = ["0.0.0.0/0"]
+  type        = list(string)
+  description = "CIDR ranges allowed to reach SSH (port 22). No default: you must pass this explicitly. Do not use 0.0.0.0/0 in production."
+  validation {
+    condition     = !contains(var.allowed_ssh_cidrs, "0.0.0.0/0") && !contains(var.allowed_ssh_cidrs, "::/0")
+    error_message = "allowed_ssh_cidrs must not be world-open (0.0.0.0/0 or ::/0). Pass your own IP, e.g. [\"203.0.113.4/32\"]."
+  }
 }
 
 variable "l1_rpc_url" {

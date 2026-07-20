@@ -19,7 +19,8 @@ terraform apply \
 terraform apply \
   -var "network=mainnet" \
   -var "key_name=my-keypair" \
-  -var "l1_rpc_url=https://mainnet.example/your-key"
+  -var "l1_rpc_url=https://mainnet.example/your-key" \
+  -var 'allowed_ssh_cidrs=["YOUR.IP.HERE/32"]'
 ```
 
 To run both: use a separate Terraform workspace per network (`terraform workspace new mainnet`).

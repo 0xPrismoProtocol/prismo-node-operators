@@ -52,6 +52,15 @@ variable "datastream_host_override" {
   default = ""
 }
 
+variable "allowed_ssh_cidrs" {
+  type        = list(string)
+  description = "CIDR ranges allowed to reach SSH (port 22). No default: you must pass this explicitly. Do not use 0.0.0.0/0 in production."
+  validation {
+    condition     = !contains(var.allowed_ssh_cidrs, "0.0.0.0/0") && !contains(var.allowed_ssh_cidrs, "::/0")
+    error_message = "allowed_ssh_cidrs must not be world-open (0.0.0.0/0 or ::/0). Pass your own IP, e.g. [\"203.0.113.4/32\"]."
+  }
+}
+
 data "hcloud_ssh_key" "user" {
   name = var.ssh_key_name
 }
@@ -94,7 +103,7 @@ resource "hcloud_firewall" "rpc" {
     direction  = "in"
     protocol   = "tcp"
     port       = "22"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    source_ips = var.allowed_ssh_cidrs
   }
   rule {
     direction  = "in"
