@@ -64,7 +64,7 @@ services:
       - "--metrics"
 
   cdk-erigon:
-    image: ghcr.io/0xpolygon/cdk-erigon:v2.61.24
+    image: ghcr.io/0xpolygon/cdk-erigon:v2.61.24@sha256:cf93eff2be9744e12b0ce96ba48c9fe43b30e44a1f9f54f3a34d4039f363b2ab
     container_name: prismo-cdk-erigon-${NETWORK:-testnet}
     restart: unless-stopped
     depends_on:

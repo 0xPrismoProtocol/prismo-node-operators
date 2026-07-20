@@ -105,7 +105,7 @@ Disk-space alerting is intentionally **not** in this group: cdk-erigon exposes n
 
 ## Updates
 
-This repo pins container image tags to specific digests. Do **not** use `:latest`. When upgrading:
+This repo pins the cdk-erigon image to a specific version **tag** (`v2.61.24`) **and** its index digest (`@sha256:…`) across every deploy target — compose, systemd (`install.sh`), and the k8s chart — so a re-pushed tag can never silently change what runs. Never use `:latest`. When upgrading:
 
 1. Read the upstream changelog (cdk-erigon, zkevm-bridge-service).
 2. Test on **testnet first**, then a non-production mainnet node, before rolling production.

@@ -29,6 +29,9 @@ network: testnet
 image:
   repository: ghcr.io/0xpolygon/cdk-erigon
   tag: v2.61.24
+  # Pin by index digest so a re-pushed tag can't change the running image.
+  # Verified against ghcr 2026-07-20. Update alongside tag; blank to skip.
+  digest: sha256:cf93eff2be9744e12b0ce96ba48c9fe43b30e44a1f9f54f3a34d4039f363b2ab
   pullPolicy: IfNotPresent
 
 replicaCount: 1

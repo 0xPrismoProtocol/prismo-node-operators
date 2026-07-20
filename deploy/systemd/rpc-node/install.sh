@@ -6,7 +6,26 @@
 set -euo pipefail
 
 CDK_VERSION="${CDK_VERSION:-v2.61.24}"
-CDK_IMAGE="ghcr.io/0xpolygon/cdk-erigon:${CDK_VERSION}"
+# Pin by digest, not just the mutable tag: a tag can be re-pushed, a digest
+# cannot. Extracting the binary + musl loader from a digest-pinned image makes
+# the install byte-deterministic. This is the index (multi-arch) manifest digest
+# for v2.61.24, verified against ghcr.io/0xpolygon/cdk-erigon on 2026-07-20.
+CDK_DIGEST_DEFAULT="sha256:cf93eff2be9744e12b0ce96ba48c9fe43b30e44a1f9f54f3a34d4039f363b2ab"
+# The pinned digest only applies to the default version. If you bump
+# CDK_VERSION, pass a matching CDK_DIGEST=sha256:... (get it via
+# `docker buildx imagetools inspect ghcr.io/0xpolygon/cdk-erigon:<ver>`);
+# otherwise the install proceeds by mutable tag with a warning.
+if [[ "$CDK_VERSION" == "v2.61.24" ]]; then
+  CDK_DIGEST="${CDK_DIGEST:-$CDK_DIGEST_DEFAULT}"
+else
+  CDK_DIGEST="${CDK_DIGEST:-}"
+fi
+if [[ -n "$CDK_DIGEST" ]]; then
+  CDK_IMAGE="ghcr.io/0xpolygon/cdk-erigon@${CDK_DIGEST}"
+else
+  echo "WARNING: no CDK_DIGEST pinned for $CDK_VERSION — installing by mutable tag (not digest-pinned)." >&2
+  CDK_IMAGE="ghcr.io/0xpolygon/cdk-erigon:${CDK_VERSION}"
+fi
 CDK_MUSL_LIBDIR="/usr/local/lib/cdk-erigon"
 NETWORK="${NETWORK:-testnet}"
 

@@ -38,11 +38,21 @@ sudo systemctl start cdk-erigon
 
 ## Updating
 
+Bump the pinned version and **re-run the installer** — it re-extracts the
+matching musl loader + libstdc++ for the new binary's ABI. A bare binary swap
+would leave the previous version's runtime in `/usr/local/lib/cdk-erigon` (the
+unit pins `LD_LIBRARY_PATH` there). No standalone release binaries are published
+for cdk-erigon — the binary always comes from the pinned `ghcr.io/0xpolygon/cdk-erigon`
+image (from `0xpolygon`, **not** `0xPolygonHermez`). Pass the new version's index
+digest so the install stays digest-pinned:
+
 ```bash
 sudo systemctl stop cdk-erigon
-sudo curl -fSL https://github.com/0xPolygonHermez/cdk-erigon/releases/download/<NEW_VERSION>/cdk-erigon-linux-amd64 -o /usr/local/bin/cdk-erigon
-sudo chmod +x /usr/local/bin/cdk-erigon
+# Get the digest: docker buildx imagetools inspect ghcr.io/0xpolygon/cdk-erigon:<NEW_VERSION>
+CDK_VERSION=<NEW_VERSION> CDK_DIGEST=sha256:<...> NETWORK=testnet sudo bash install.sh   # or NETWORK=mainnet
 sudo systemctl start cdk-erigon
 ```
 
-Read upstream changelog before bumping major versions. Test on testnet before rolling to mainnet.
+`install.sh` preserves your `/etc/prismo/env` on re-run, so only the binary,
+libs, and unit are refreshed. Read the upstream changelog before bumping major
+versions, and test on testnet before rolling to mainnet.
