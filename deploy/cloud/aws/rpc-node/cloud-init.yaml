@@ -21,10 +21,30 @@ write_files:
       ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
 
 runcmd:
-  # 1. Format + mount the data disk at /var/lib/prismo
+  # 1. Format + mount the data disk at /var/lib/prismo.
+  #    Select by identity (the one whole disk that is NOT the root disk and has
+  #    no filesystem), never by size — a sub-1TB data_disk_gb prints e.g. "500G"
+  #    and the old `$2 ~ /T/` size match left DEV empty. Poll to absorb attach
+  #    delay, then FAIL LOUDLY: cloud-init runcmd does NOT abort on a non-zero
+  #    item, so step 4 also re-checks the mount before touching chaindata.
   - |
-    DEV=$(lsblk -ndo NAME,SIZE | awk '$2 ~ /T/ && NR>1 {print $1; exit}')
-    [ -n "$DEV" ] && mkfs.ext4 -F /dev/$DEV && mkdir -p /var/lib/prismo
+    set -u
+    ROOT_DISK=$(lsblk -no PKNAME "$(findmnt -no SOURCE / 2>/dev/null)" 2>/dev/null | head -1 || true)
+    DEV=""
+    for i in $(seq 1 60); do
+      for d in $(lsblk -dno NAME,TYPE | awk '$2=="disk"{print $1}'); do
+        [ "$d" = "$ROOT_DISK" ] && continue
+        [ -z "$(lsblk -no FSTYPE "/dev/$d" | tr -d '[:space:]')" ] && { DEV="$d"; break; }
+      done
+      [ -n "$DEV" ] && break
+      sleep 2
+    done
+    if [ -z "$DEV" ]; then
+      echo "prismo: no empty data disk found after 120s; refusing to place chaindata on the root disk" >&2
+      exit 1
+    fi
+    mkfs.ext4 -F "/dev/$DEV"
+    mkdir -p /var/lib/prismo
     echo "/dev/$DEV /var/lib/prismo ext4 defaults,nofail 0 2" >> /etc/fstab
     mount -a
 
@@ -48,6 +68,7 @@ runcmd:
   #    (prismo-rpc-<network>_chaindata) so compose adopts this volume instead
   #    of creating its own.
   - |
+    mountpoint -q /var/lib/prismo || { echo "prismo: /var/lib/prismo is not a mounted data disk; aborting before creating chaindata on the root disk" >&2; exit 1; }
     mkdir -p /var/lib/prismo/chaindata
     docker volume create --driver local --opt type=none --opt o=bind \
       --opt device=/var/lib/prismo/chaindata prismo-rpc-${network}_chaindata

@@ -12,11 +12,23 @@ write_files:
       ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
 
 runcmd:
-  # The hcloud_volume mounts at /mnt/HC_Volume_<id>; symlink it.
+  # The hcloud_volume (automount=true) mounts at /mnt/HC_Volume_<id>; symlink it.
+  # Poll with a bounded timeout instead of a bare `sleep 30` (automount timing is
+  # not guaranteed to beat 30s), then FAIL LOUDLY: cloud-init runcmd does NOT
+  # abort on a non-zero item, so step 4 re-checks the mount before chaindata.
   - |
-    sleep 30
-    VOL=$(ls /mnt | grep HC_Volume | head -1)
-    [ -n "$VOL" ] && ln -sfn "/mnt/$VOL" /var/lib/prismo
+    set -u
+    VOL=""
+    for i in $(seq 1 60); do
+      VOL=$(ls /mnt 2>/dev/null | grep HC_Volume | head -1 || true)
+      [ -n "$VOL" ] && break
+      sleep 2
+    done
+    if [ -z "$VOL" ]; then
+      echo "prismo: hcloud volume not mounted under /mnt after 120s; refusing to place chaindata on the root disk" >&2
+      exit 1
+    fi
+    ln -sfn "/mnt/$VOL" /var/lib/prismo
 
   - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
   - cp /etc/prismo/operator.env /opt/prismo-node-operators/deploy/docker-compose/rpc-node/.env
@@ -29,6 +41,7 @@ runcmd:
   # (prismo-rpc-<network>_chaindata) so compose adopts this volume instead of
   # creating its own.
   - |
+    mountpoint -q /var/lib/prismo || { echo "prismo: /var/lib/prismo is not a mounted data volume; aborting before creating chaindata on the root disk" >&2; exit 1; }
     mkdir -p /var/lib/prismo/chaindata
     docker volume create --driver local --opt type=none --opt o=bind \
       --opt device=/var/lib/prismo/chaindata prismo-rpc-${network}_chaindata

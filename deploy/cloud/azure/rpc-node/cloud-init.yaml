@@ -21,11 +21,23 @@ write_files:
       ${datastream_host_override == "" ? "" : "DATASTREAM_HOST=${datastream_host_override}"}
 
 runcmd:
-  # 1. Format + mount the data disk at /var/lib/prismo (Azure attaches it as the 1 TB disk)
+  # 1. Format + mount the data disk at /var/lib/prismo.
+  #    LUN 10 is pinned in main.tf (azurerm_virtual_machine_data_disk_attachment,
+  #    which attaches AFTER the VM boots — first-boot cloud-init can race it).
+  #    Poll the stable by-lun path instead of size-matching, then FAIL LOUDLY:
+  #    cloud-init runcmd does NOT abort on a non-zero item, so step 4 also
+  #    re-checks the mount before touching chaindata.
   - |
-    DEV=$(lsblk -ndo NAME,SIZE | awk '$2 ~ /T/ && NR>1 {print $1; exit}')
-    [ -n "$DEV" ] && mkfs.ext4 -F /dev/$DEV && mkdir -p /var/lib/prismo
-    echo "/dev/$DEV /var/lib/prismo ext4 defaults,nofail 0 2" >> /etc/fstab
+    set -u
+    DISK=/dev/disk/azure/scsi1/lun10
+    for i in $(seq 1 60); do [ -e "$DISK" ] && break; sleep 2; done
+    if [ ! -e "$DISK" ]; then
+      echo "prismo: data disk at $DISK not found after 120s; refusing to place chaindata on the root disk" >&2
+      exit 1
+    fi
+    mkfs.ext4 -F "$DISK"
+    mkdir -p /var/lib/prismo
+    echo "$DISK /var/lib/prismo ext4 defaults,nofail 0 2" >> /etc/fstab
     mount -a
 
   # 2. Pull operator repo
@@ -48,6 +60,7 @@ runcmd:
   #    (prismo-rpc-<network>_chaindata) so compose adopts this volume instead
   #    of creating its own.
   - |
+    mountpoint -q /var/lib/prismo || { echo "prismo: /var/lib/prismo is not a mounted data disk; aborting before creating chaindata on the root disk" >&2; exit 1; }
     mkdir -p /var/lib/prismo/chaindata
     docker volume create --driver local --opt type=none --opt o=bind \
       --opt device=/var/lib/prismo/chaindata prismo-rpc-${network}_chaindata
