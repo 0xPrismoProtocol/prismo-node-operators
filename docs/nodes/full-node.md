@@ -18,21 +18,20 @@ Same `cdk-erigon` binary as the RPC node, but configured to **derive state from 
 - Backend for watchtowers — they query a full node to compute the "expected" state root.
 - Strongest trust-minimized read path: bridge UIs and indexers should prefer full nodes over RPC nodes.
 
+## Known blocker on the pinned binary (v2.61.24)
+
+> **This role does not currently run as an independent RPC-role verifier on the pinned `cdk-erigon v2.61.24`.** L1-only sync is driven by `--zkevm.l1-sync-start-block`, and on this release that flag is gated to the sequencer: `eth/backend.go` panics `"you cannot launch in l1 sync mode as an RPC node"` unless `CDK_ERIGON_SEQUENCER=1`. Setting that env var makes the process behave as the trusted sequencer (batch production, executor requirements), which is wrong and unsafe for this role. This is an upstream capability gap tracked separately — no config change here works around it. See the `KNOWN BLOCKER` analysis in [`deploy/docker-compose/full-node/docker-compose.yml`](../../deploy/docker-compose/full-node/docker-compose.yml).
+
 ## Configuration delta vs RPC
 
-Same `configs/` files, but with these flags overridden:
+The stack in `deploy/docker-compose/full-node/` starts from the same `configs/` files and layers these differences (all verified against `v2.61.24`):
 
-```yaml
-# Disable trusting the sequencer's stream
-zkevm.l2-datastreamer-url: ""        # leave empty
-zkevm.sync-from-l1-only: true        # all blocks come from L1
+- `--zkevm.l1-sync-start-block=${L1_FIRST_BLOCK}` — the real L1-recovery switch. There is **no** `zkevm.sync-from-l1-only` flag on this binary; passing it panics `flag provided but not defined`.
+- `--zkevm.l2-datastreamer-url=${DATASTREAM_HOST}:${DATASTREAM_PORT}` — must be **non-empty**. `ctx.IsSet()` treats an empty value as unset and cdk-erigon panics `Flag not set: zkevm.l2-datastreamer-url`. Setting `l1-sync-start-block` is what makes the stream unused, not blanking this URL.
+- `--zkevm.l2-sequencer-rpc-url=${SEQUENCER_RPC_URL}` — hard-required at startup regardless of sync mode.
+- `zkevm.l1-contract-address-check` stays **`false`** (as pinned in `configs/chain-config.yaml`). On the fork-12 RollupManager, turning it on panics `Failed to retrieve contract addresses from L1`; addresses are pinned via the `--zkevm.address-*` flags instead.
 
-# Stricter executor
-zkevm.executor-strict: true
-zkevm.l1-contract-address-check: true
-```
-
-These are pre-applied in `deploy/*/full-node/` configs.
+The wiring lives in [`deploy/docker-compose/full-node/docker-compose.yml`](../../deploy/docker-compose/full-node/docker-compose.yml); the systemd path is not yet scripted.
 
 ## Required: reliable L1 archive access
 
