@@ -25,7 +25,7 @@ Estimated growth per month at current testnet load:
 | Full Node | ~150 GB | ~30 GB |
 | Bridge Indexer | ~5 GB | n/a |
 
-These are growth *rates*, not current size — the live chain's actual datadir today is ~6 GB (see above); it will grow toward these figures as chain age and tx volume increase. Mainnet figures will be revised once load data is in.
+These are growth *rates*, not current size — the live chain's actual datadir today is ~6 GB (see above); it will grow toward these figures as chain age and tx volume increase. Mainnet figures will be revised once load data is in. The 100 GB in the table above is a *starting* floor — under one month of archive-mode growth — so provision extra (or a resizable) volume from day one; the cloud Terraform modules default to 1 TB for exactly this reason.
 
 ## L1 Dependency
 
@@ -49,6 +49,8 @@ Recommendation:
 | AWS | `c6i.xlarge` (4 vCPU/8 GB) + 100 GB gp3 | `c6i.xlarge` + 100 GB gp3 | `t3.medium` + 50 GB gp3 | `t3.large` + 200 GB gp3 |
 | Hetzner | `CPX31` (4 vCPU/8 GB) + 160 GB NVMe | `CPX31` + 160 GB NVMe | `CX22` + 80 GB | `CCX13` + 240 GB |
 | GCP | custom `n2-custom-4-8192` (4 vCPU/8 GB) + 100 GB pd-ssd | `n2-custom-4-8192` + 100 GB pd-ssd | `e2-medium` + 50 GB pd-ssd | `e2-standard-2` + 200 GB pd-ssd |
+
+The instances in the table above are the minimum-matching tier. The cloud Terraform modules under [deploy/cloud/](../deploy/cloud/) deliberately default to a larger **headroom** tier — AWS `m6i.2xlarge` + 1 TB gp3 (~$374/mo) and Hetzner `CCX23` (dedicated AMD) + 1 TB (~€62/mo), not the `CPX31` in the table above — see each module's README. This is intentional production headroom, not a hard requirement; the table values still meet the documented minimum.
 
 Monthly cost rough order (comfortable-minimum sizing above): AWS ~$110, Hetzner ~$20, GCP ~$120 for the RPC tier. Bump disk size well before you hit these numbers if you're tracking Disk Growth above — resizing a live volume is easier than an emergency migration.
 

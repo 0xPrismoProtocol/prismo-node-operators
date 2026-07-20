@@ -42,6 +42,8 @@ Output prints the public IP. Then:
 
 Reserved instances or Savings Plans cut compute by ~30%. Mainnet sizing TBD — likely larger instance + more disk.
 
+> This module deploys the **headroom tier** — roughly 2× the documented minimum in [docs/01-hardware.md](../../../../docs/01-hardware.md) (4 vCPU / 8 GB / 100 GB, ~$110/mo). The extra CPU/RAM/disk is intentional production headroom, not a hard requirement.
+
 ## Tear down
 
 ```bash

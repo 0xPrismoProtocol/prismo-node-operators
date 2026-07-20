@@ -37,13 +37,13 @@ The trust model is identical on testnet and mainnet. Mainnet raises the *stakes*
 - **Outputs**: JSON-RPC on `:8545`, WebSocket, metrics on `:9091`
 - **What it does**: Streams blocks from sequencer, executes them locally, serves user `eth_*` calls.
 - **Why run one**: Decentralizes the user read path. If the official RPC is rate-limited or down, your node keeps users online.
-- **Hardware**: 8 vCPU, 32 GB RAM, 1 TB NVMe (testnet sizing — re-evaluate for mainnet load).
+- **Hardware**: see [docs/01-hardware.md](01-hardware.md#per-node-role) — comfortable minimum 4 vCPU / 8 GB / 100 GB NVMe, sized for growth (the cloud Terraform modules default to a larger headroom tier). Re-evaluate for mainnet.
 
 ### Full Node — state verifier
 - Same binary as RPC, configured to **re-execute every batch from L1 calldata**, not from the sequencer stream.
 - **What it does**: Pulls batch data directly from L1, reconstructs L2 state, compares to L1-posted state root.
 - **Why run one**: Independent state verification — this is *not* a consensus validator (a zk-rollup has none; validity comes from the SNARK). zkProof guarantees validity, but this node catches data-availability problems, sequencer bugs, or upgrade incidents.
-- **Hardware**: 8 vCPU, 32 GB RAM, 1 TB NVMe + reliable L1 archive access (Sepolia for testnet, Ethereum for mainnet).
+- **Hardware**: see [docs/01-hardware.md](01-hardware.md#per-node-role) — same tier as RPC (4 vCPU / 8 GB / 100 GB NVMe minimum) plus reliable L1 archive access (Sepolia for testnet, Ethereum for mainnet).
 
 ### Watchtower — fraud detector
 - **Binary**: lightweight Go service (this repo: `prismo-watchtower`).

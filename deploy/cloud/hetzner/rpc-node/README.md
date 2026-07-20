@@ -34,6 +34,8 @@ Then DNS + certbot like the AWS variant.
 
 Hetzner egress is included up to 20 TB. Big win for high-traffic public RPC.
 
+> `CCX23` (dedicated AMD) + 1 TB is the **headroom tier** — above the `CPX31` minimum in [docs/01-hardware.md](../../../../docs/01-hardware.md) (4 vCPU / 8 GB). Intentional headroom; `CPX31` meets the documented minimum if you want to trim cost on testnet.
+
 ## Caveat
 
 Hetzner's volumes are slower than AWS gp3 IOPS-tuned. For production sequencer/full-node workloads, prefer their dedicated NVMe AX servers. RPC is fine on the volume on testnet; for mainnet, benchmark before committing.
