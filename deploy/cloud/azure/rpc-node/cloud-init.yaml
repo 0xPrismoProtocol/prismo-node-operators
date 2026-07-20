@@ -40,7 +40,10 @@ runcmd:
     echo "$DISK /var/lib/prismo ext4 defaults,nofail 0 2" >> /etc/fstab
     mount -a
 
-  # 2. Pull operator repo
+  # 2. Pull operator repo.
+  #    NOTE: this clones the mutable default branch, so a bad push to `main`
+  #    changes what brand-new nodes deploy. Once a release tag is cut, pin it:
+  #      - git clone --branch <release-tag> --depth 1 https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
   - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
 
   # 3. Build the role's .env from the canonical network env + operator overrides

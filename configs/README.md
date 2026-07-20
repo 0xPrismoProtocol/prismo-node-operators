@@ -33,6 +33,8 @@ configs/
 
 The files are chain-name-keyed (`dynamic-<L2_CHAIN_NAME>-*.json`), so multiple networks coexist flat in this same directory without subfolders — mainnet's `dynamic-<mainnet-chain-name>-*.json` files will be added alongside once mainnet deploys. cdk-erigon's `--chain` flag must match `L2_CHAIN_NAME` for the active network. Full detail: [docs/02-network-config.md#genesis--allocations](../docs/02-network-config.md#genesis--allocations).
 
+> `dynamic-glassnet-conf.json` is intentionally just `{"timestamp": 0}` — for this dynamic chain cdk-erigon reads chain parameters from `-chainspec.json` and initial state from `-allocs.json`; `-conf.json` only supplies the genesis L2 timestamp (`0`). It is **complete, not truncated** (its SHA-256 is pinned in `CHECKSUMS.txt`).
+
 **Always verify the SHA-256 in `CHECKSUMS.txt` before using these files** (see Verifying below).
 
 ## Verifying

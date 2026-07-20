@@ -10,6 +10,7 @@
   "contracts": {
     "rollup_manager": "TBD",
     "zkevm": "TBD",
+    "rollup_etrog": "TBD",
     "ger_manager": "TBD",
     "gas_token": "TBD",
     "sequencer_eoa": "TBD",

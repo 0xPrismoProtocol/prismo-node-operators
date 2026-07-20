@@ -82,11 +82,21 @@ cdk-erigon does **not** require P2P peers — blocks come from the sequencer dat
 All four deploy targets mount `configs/` into the container/process at `/etc/prismo/`:
 
 ```yaml
-# docker-compose excerpt
+# docker-compose excerpt — NOTE: the compose files do NOT use `env_file:`.
+# scripts/compose.sh sources configs/networks/${NETWORK}.env (then the role's
+# .env) into the environment before invoking Compose, and the values reach the
+# process via an `environment:` map. Always launch via the wrapper —
+# `scripts/compose.sh rpc-node up -d` — not a bare `docker compose up`, or the
+# ${...} flags render empty.
 volumes:
   - ../../../configs:/etc/prismo:ro
-env_file:
-  - ../../../configs/networks/${NETWORK}.env
+environment:
+  NETWORK:          ${NETWORK}
+  L2_CHAIN_NAME:    ${L2_CHAIN_NAME}
+  L2_CHAIN_ID:      ${L2_CHAIN_ID}
+  L1_CHAIN_ID:      ${L1_CHAIN_ID}
+  L1_FIRST_BLOCK:   ${L1_FIRST_BLOCK}
+  # ...plus L1_RPC_URL and the other per-network keys
 ```
 
 cdk-erigon flags then come from the active network env:

@@ -61,7 +61,7 @@ SNAP_SHA="abc123…"
 # Verify and extract into the named volume. NOTE: busybox tar (alpine) does
 # not support --use-compress-program — pipe through unzstd instead. The chown
 # matters: the compose runs cdk-erigon as 10000:10000.
-docker run --rm -v prismo-rpc-testnet_chaindata:/data --user 0:0 alpine sh -c "apk add -q zstd curl && \
+docker run --rm -v prismo-rpc-testnet_chaindata:/data --user 0:0 alpine:3.20 sh -c "apk add -q zstd curl && \
   curl -sL $SNAP_URL -o /tmp/snap.tar.zst && \
   echo \"$SNAP_SHA  /tmp/snap.tar.zst\" | sha256sum -c - && \
   unzstd -c /tmp/snap.tar.zst | tar -xf - -C /data && \

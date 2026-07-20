@@ -69,7 +69,7 @@ not do that by default.
 
 ### Kubernetes
 
-Use kube-prometheus-stack. The Helm `values.yaml` files in `deploy/kubernetes/*/` already have `monitoring.serviceMonitor.enabled: true`. Apply the alert rules as a `PrometheusRule` CRD with the same content. Set the `network` external label on the Prometheus instance per cluster (one cluster per network is the cleanest split).
+Use kube-prometheus-stack. The Helm `values.yaml` files in `deploy/kubernetes/*/` ship `monitoring.serviceMonitor.enabled: false` — flip it to `true` once the Prometheus Operator CRDs are installed in-cluster. Apply the alert rules as a `PrometheusRule` CRD with the same content. Set the `network` external label on the Prometheus instance per cluster (one cluster per network is the cleanest split).
 
 ### Bare-metal
 
@@ -82,6 +82,8 @@ sudo systemctl restart prometheus
 ```
 
 ## Alertmanager routing recommendation
+
+> **Delivery is bring-your-own.** This repo ships Prometheus only (`monitoring/docker-compose.monitoring.yml`) and `prometheus.yml` has no `alerting:` block, so the bundled rules **evaluate but are not delivered** anywhere. To get notifications, run your own Alertmanager and add an `alerting:` + `alertmanagers:` stanza to `prometheus.yml` (kube-prometheus-stack users already have one). The table below is the routing we recommend once Alertmanager is in place.
 
 | Severity | Testnet | Mainnet |
 |---|---|---|

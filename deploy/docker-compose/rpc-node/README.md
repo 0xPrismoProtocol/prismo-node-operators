@@ -40,7 +40,7 @@ SNAP_SHA="..."
 # 10000:10000. Volume name is "<project>_chaindata" — for this role/network
 # that's prismo-rpc-${NETWORK:-testnet}_chaindata (prismo-rpc-testnet_chaindata
 # on testnet). See docs/03-snapshots.md for the canonical version of this.
-docker run --rm -v prismo-rpc-${NETWORK:-testnet}_chaindata:/data --user 0:0 alpine sh -c "apk add -q zstd curl && \
+docker run --rm -v prismo-rpc-${NETWORK:-testnet}_chaindata:/data --user 0:0 alpine:3.20 sh -c "apk add -q zstd curl && \
   curl -sL $SNAP_URL -o /tmp/snap.tar.zst && \
   echo \"$SNAP_SHA  /tmp/snap.tar.zst\" | sha256sum -c - && \
   unzstd -c /tmp/snap.tar.zst | tar -xf - -C /data && \
@@ -54,6 +54,12 @@ docker run --rm -v prismo-rpc-${NETWORK:-testnet}_chaindata:/data --user 0:0 alp
 ```bash
 ../../../scripts/healthcheck.sh http://localhost:8545
 ```
+
+> **The container healthcheck is liveness-only.** The Docker `healthcheck` in
+> `docker-compose.yml` only confirms the RPC port answers `eth_blockNumber`, so
+> the container reports `healthy` even while L1 verification silently stalls (it
+> keeps streaming L2 blocks regardless). For L1 health, watch the
+> `last_checked_l1_block` metric — it must keep increasing. See [monitoring/](../../../monitoring/).
 
 ## Reverse proxy
 

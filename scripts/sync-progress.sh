@@ -5,6 +5,9 @@
 # Network-agnostic — the script only prints block / batch / verified-batch counters.
 # For chain-id verification, use scripts/healthcheck.sh.
 set -euo pipefail
+
+command -v jq >/dev/null 2>&1 || { echo "jq is required but not installed. Install it (https://jqlang.github.io/jq/download/) and re-run." >&2; exit 1; }
+
 RPC="${1:-http://localhost:8545}"
 while true; do
   BLOCK=$(curl -fsS -X POST "$RPC" -H 'Content-Type: application/json' \

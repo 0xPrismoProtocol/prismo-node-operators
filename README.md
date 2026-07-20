@@ -45,7 +45,7 @@ Set `NETWORK` once (in `.env`, Helm values, or Terraform var); the templates loa
 
 ## Deploy Targets
 
-Every node role ships configurations for all four targets:
+Every node role ships docker-compose, systemd, and kubernetes configs. Cloud (Terraform + cloud-init) is complete for Azure (all roles) and for the RPC node on AWS/Hetzner; the AWS/Hetzner full-node, watchtower, and bridge-indexer dirs are README stubs for now.
 
 ```
 deploy/

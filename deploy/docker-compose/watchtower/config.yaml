@@ -25,4 +25,4 @@ alerts:
 severity_routing:
   fraud_detected: page
   upgrade: page
-  sequencer_silent_minutes: 60
+  sequencer_silent_minutes: 240   # 4h — matches monitoring/alert-rules.yaml; a 1h threshold flaps given the 1h batch-seal time

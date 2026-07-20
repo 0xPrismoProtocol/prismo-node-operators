@@ -101,7 +101,7 @@ persistence:
   enabled: true
   storageClassName: ""   # empty = cluster default StorageClass
   accessModes: ["ReadWriteOnce"]
-  size: 200Gi             # see docs/01-hardware.md for growth-rate sizing
+  size: 200Gi             # ~6 wks at archive's ~150 GB/mo (docs/01-hardware.md); raise for long-lived archive nodes
 
 resources:
   requests:

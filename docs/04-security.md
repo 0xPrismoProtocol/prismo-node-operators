@@ -12,9 +12,15 @@ Operator-side checklist. Misconfigured RPC nodes have leaked admin keys, allowed
 | `30303` (P2P) | `0.0.0.0` | Yes if you want peers | Optional for cdk-erigon |
 | `6900` (data stream client) | n/a | n/a — outbound only | TCP to sequencer |
 
+### Secrets on the cloud paths (L1 RPC key)
+
+On all three cloud modules, `L1_RPC_URL` — which usually carries a provider API key — is written from Terraform into instance **user-data** (`/etc/prismo/operator.env`) and is therefore stored in **Terraform state** and readable on the instance via **IMDS**. Marking the TF variable `sensitive = true` only masks CLI/plan output; it does **not** encrypt state or hide the rendered user-data. Anyone with read access to the state file or to instance metadata can read the key.
+
+The Kubernetes chart already does this right: `L1_RPC_URL` is sourced from a `Secret` via `secretKeyRef` (see `deploy/kubernetes/chart/templates/statefulset.yaml`), so it never lands in a plaintext ConfigMap. For the cloud paths, prefer fetching the key **post-boot** from AWS SSM Parameter Store / Azure Key Vault / a Hetzner secret store (with an instance role / managed identity) instead of baking it into user-data. This refactor is tracked as a hardening follow-up.
+
 ### Reverse proxy (nginx)
 
-`limit_req_zone` is only valid in the `http` context, not inside `server{}` — put this file at `/etc/nginx/conf.d/prismo.conf` (nginx's default `nginx.conf` already `include`s `conf.d/*.conf` from inside its `http{}` block, so a top-level directive in this file lands in the right context without you needing your own `http{}` wrapper). The directive placement is correct: verified with `nginx:stable` (1.30.3) that `nginx -t` passes on exactly this file **once the `ssl_certificate`/`ssl_certificate_key` files it references exist on disk**. Obtain the certs first (run certbot — see below); until they are present, `nginx -t` fails with `cannot load certificate … No such file`, which is a missing-cert condition, not a config error.
+This vhost ships as a ready-to-copy file at [`deploy/cloud/nginx/prismo.conf`](../deploy/cloud/nginx/prismo.conf) (the block below is the same content). `limit_req_zone` is only valid in the `http` context, not inside `server{}` — put this file at `/etc/nginx/conf.d/prismo.conf` (nginx's default `nginx.conf` already `include`s `conf.d/*.conf` from inside its `http{}` block, so a top-level directive in this file lands in the right context without you needing your own `http{}` wrapper). The directive placement is correct: verified with `nginx:stable` (1.30.3) that `nginx -t` passes on exactly this file **once the `ssl_certificate`/`ssl_certificate_key` files it references exist on disk**. Obtain the certs first (run certbot — see [TLS certificates (certbot)](#tls-certificates-certbot) below); until they are present, `nginx -t` fails with `cannot load certificate … No such file`, which is a missing-cert condition, not a config error.
 
 ```nginx
 # /etc/nginx/conf.d/prismo.conf
@@ -50,6 +56,25 @@ server {
     proxy_read_timeout 3600s;   # keep long-lived subscriptions open
   }
 }
+```
+
+### TLS certificates (certbot)
+
+Obtain the Let's Encrypt certs the vhost references **before** starting nginx — `nginx -t` fails until they exist. The cloud-init templates install certbot but do not run it (your DNS A record must resolve to the host first):
+
+```bash
+# Point rpc.your-domain.example at this host's public IP, then:
+sudo certbot --nginx -d rpc.your-domain.example
+# Non-interactive / no vhost yet? Issue standalone and wire the paths in manually:
+# sudo certbot certonly --standalone -d rpc.your-domain.example
+```
+
+Then copy the shipped vhost in and reload:
+
+```bash
+sudo cp /opt/prismo-node-operators/deploy/cloud/nginx/prismo.conf /etc/nginx/conf.d/prismo.conf
+# edit server_name + the two ssl_certificate paths to your hostname
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 Add a JSON-RPC method allowlist using a small filter (e.g. [eth-rpc-proxy](https://github.com/grassrootseconomics/eth-rpc-proxy) or homemade): block `admin_*`, `personal_*`, `miner_*`, `txpool_*` (debug endpoints up to you).

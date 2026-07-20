@@ -7,6 +7,8 @@
 # same script works for both networks.
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || { echo "jq is required but not installed. Install it (https://jqlang.github.io/jq/download/) and re-run." >&2; exit 1; }
+
 RPC="${1:-http://localhost:8545}"
 NETWORK="${2:-${NETWORK:-testnet}}"
 

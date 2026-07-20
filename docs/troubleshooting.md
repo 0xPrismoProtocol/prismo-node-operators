@@ -43,7 +43,7 @@ du -sh /var/lib/prismo
 
 # Pruning settings — the shipped default is unpruned (no prune.* flags), so
 # this will normally print nothing. If you opted into pruning, check it's set:
-grep -E "prune" /etc/prismo/chain-config.yaml
+grep -E "^prune" /etc/prismo/chain-config.yaml
 ```
 
 See [Pruning vs archive](nodes/rpc-node.md#pruning-vs-archive) for why unpruned is the default and how to opt in.

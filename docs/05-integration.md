@@ -90,10 +90,10 @@ $ curl -s localhost:8545 -d '{"jsonrpc":"2.0","method":"zkevm_batchNumber","para
 {"jsonrpc":"2.0","id":1,"result":"0x116"}          # 278 — latest trusted batch
 
 $ curl -s localhost:8545 -d '{"jsonrpc":"2.0","method":"zkevm_virtualBatchNumber","params":[],"id":1}'
-{"jsonrpc":"2.0","id":1,"result":"0x1"}             # latest batch posted to L1
+{"jsonrpc":"2.0","id":1,"result":"0x17"}            # 23 — latest batch posted to L1
 
 $ curl -s localhost:8545 -d '{"jsonrpc":"2.0","method":"zkevm_verifiedBatchNumber","params":[],"id":1}'
-{"jsonrpc":"2.0","id":1,"result":"0x17"}            # 23 — latest SNARK-verified batch
+{"jsonrpc":"2.0","id":1,"result":"0x1"}             # 1 — latest SNARK-verified batch
 ```
 
 | Tier | How to query | Typical latency | Use for |

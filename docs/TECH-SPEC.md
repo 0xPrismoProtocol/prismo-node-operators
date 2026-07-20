@@ -162,7 +162,7 @@ All roles run on the sizing in [`docs/01-hardware.md`](01-hardware.md) (testnet 
 - `VerifyBatches(uint64 numBatch, bytes32 stateRoot, address aggregator)` → query full node for state root at `numBatch`, compare to L1-claimed root, mismatch fires `PrismoFraudDetected`.
 - `UpdateRollupManager*` / `Upgraded` / admin events → governance/upgrade alert.
 
-**Severity routing (default):** `fraud_detected` → page · `upgrade` → page · `sequencer_silent` (no `SequenceBatches` in 1 h) → warn. Finality gate: `finality_blocks = 64` before treating an L1 event as final. Alert cooldown 300 s.
+**Severity routing (default):** `fraud_detected` → page · `upgrade` → page · `sequencer_silent` (no `SequenceBatches` in 4 h) → warn. Finality gate: `finality_blocks = 64` before treating an L1 event as final. Alert cooldown 300 s.
 
 **Requirements:**
 - **R-7 (authority):** the watchtower raises alarm only — it MUST NOT send transactions, slash, or challenge. Response is human/community.

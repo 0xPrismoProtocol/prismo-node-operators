@@ -30,6 +30,9 @@ runcmd:
     fi
     ln -sfn "/mnt/$VOL" /var/lib/prismo
 
+  # NOTE: this clones the mutable default branch, so a bad push to `main`
+  # changes what brand-new nodes deploy. Once a release tag is cut, pin it:
+  #   - git clone --branch <release-tag> --depth 1 https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
   - git clone https://github.com/0xPrismoProtocol/prismo-node-operators /opt/prismo-node-operators
   - cp /etc/prismo/operator.env /opt/prismo-node-operators/deploy/docker-compose/rpc-node/.env
 

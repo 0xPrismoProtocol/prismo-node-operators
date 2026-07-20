@@ -31,7 +31,7 @@ cp .env.example .env
 # Generate JWT secret for geth↔lighthouse handshake
 NETWORK_LOWER=$(awk -F= '/^NETWORK=/{print $2}' .env)
 docker volume create prismo-full-${NETWORK_LOWER}_l1-geth
-docker run --rm -v prismo-full-${NETWORK_LOWER}_l1-geth:/data alpine sh -c \
+docker run --rm -v prismo-full-${NETWORK_LOWER}_l1-geth:/data alpine:3.20 sh -c \
   "head -c 32 /dev/urandom | xxd -p -c 32 > /data/jwt.hex && chmod 600 /data/jwt.hex"
 
 ../../../scripts/compose.sh full-node up -d
