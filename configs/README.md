@@ -41,3 +41,15 @@ The files are chain-name-keyed (`dynamic-<L2_CHAIN_NAME>-*.json`), so multiple n
 cd configs
 sha256sum -c CHECKSUMS.txt
 ```
+
+The pinned hashes are computed against the committed **LF** content, and the
+repo ships a `.gitattributes` (`configs/** text eol=lf`) so a fresh clone keeps
+them byte-exact on every platform. If you cloned with `core.autocrlf=true` (the
+Git for Windows default) **before** `.gitattributes` landed, re-normalize first,
+otherwise `sha256sum -c` fails on all entries with `\r`-mangled names/bodies:
+
+```bash
+git rm --cached -r configs && git checkout -- configs
+```
+
+Or verify a single file directly against the commit: `git show HEAD:configs/<file> | sha256sum`.

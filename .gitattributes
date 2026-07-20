@@ -1,0 +1,8 @@
+# Keep the canonical config + checksum files byte-exact on checkout so
+# `sha256sum -c CHECKSUMS.txt` passes on autocrlf clones (the Git for Windows
+# default) too. Without this, autocrlf rewrites these files to CRLF on checkout:
+# the filenames in CHECKSUMS.txt gain a trailing \r AND every config body's
+# hash changes, so a Windows operator following configs/README.md verbatim
+# sees all 7 entries FAIL and wrongly concludes the configs are corrupt.
+# The pinned hashes are computed against LF content, which this keeps intact.
+configs/** text eol=lf
