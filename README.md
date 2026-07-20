@@ -40,7 +40,7 @@ Set `NETWORK` once (in `.env`, Helm values, or Terraform var); the templates loa
 |------|--------------|-------------|
 | [RPC Node](docs/nodes/rpc-node.md) | Read-only `cdk-erigon` serving JSON-RPC | Decentralize user read path; lowest barrier |
 | [Full Node](docs/nodes/full-node.md) | Re-executes every batch from L1 calldata | Independent state verification — detect bad state roots |
-| [Watchtower](docs/nodes/watchtower.md) | Watches L1 contracts, alerts on misbehavior | Fraud detection while sequencer remains centralized |
+| [Watchtower](docs/nodes/watchtower.md) _(coming soon — binary not yet published)_ | Watches L1 contracts, alerts on misbehavior | Fraud detection while sequencer remains centralized |
 | [Bridge Indexer](docs/nodes/bridge-indexer.md) | Indexes deposit/withdraw events L1↔L2 | Censorship-resistant withdrawals |
 
 ## Deploy Targets

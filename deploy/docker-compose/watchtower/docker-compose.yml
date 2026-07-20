@@ -1,18 +1,59 @@
 name: prismo-watchtower-${NETWORK:-testnet}
 
 services:
+  # config.yaml (in this directory) is a TEMPLATE — it has literal
+  # ${L1_RPC_URL}-style placeholders that Docker Compose's own variable
+  # interpolation does NOT expand inside bind-mounted file *contents* (only
+  # inside the compose YAML itself). Render it via envsubst into a shared
+  # volume before the watchtower starts, mirroring the bridge-indexer stack;
+  # otherwise the process would read the literal, unexpanded "${...}" strings.
+  # NOTE: pre-emptive — the watchtower image is not published yet, so this stack
+  # cannot start regardless (see docs/nodes/watchtower.md). The template will be
+  # correct when an image ships; if that binary self-expands env, this render is
+  # harmless.
+  config-init:
+    image: alpine:3.20
+    container_name: prismo-watchtower-config-init-${NETWORK:-testnet}
+    restart: "no"
+    environment:
+      L1_RPC_URL:          ${L1_RPC_URL}
+      ROLLUP_CONTRACT:     ${ROLLUP_CONTRACT}
+      GER_MANAGER:         ${GER_MANAGER}
+      L1_FIRST_BLOCK:      ${L1_FIRST_BLOCK}
+      L2_RPC_URL:          ${L2_RPC_URL}
+      L2_CHAIN_ID:         ${L2_CHAIN_ID}
+      SLACK_WEBHOOK_URL:   ${SLACK_WEBHOOK_URL:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+    volumes:
+      - ./config.yaml:/template/config.yaml:ro
+      - watchtower-config:/rendered
+    command:
+      - sh
+      - -c
+      - >
+        set -eu &&
+        apk add --no-cache gettext >/dev/null &&
+        envsubst
+        '$${L1_RPC_URL} $${ROLLUP_CONTRACT} $${GER_MANAGER} $${L1_FIRST_BLOCK} $${L2_RPC_URL} $${L2_CHAIN_ID} $${SLACK_WEBHOOK_URL} $${DISCORD_WEBHOOK_URL}'
+        < /template/config.yaml > /rendered/config.yaml &&
+        echo "rendered /rendered/config.yaml:" &&
+        cat /rendered/config.yaml
+
   watchtower:
     # Reference impl. Replace with a community-maintained image once published.
     image: ghcr.io/0xprismoprotocol/watchtower:0.1.0
     container_name: prismo-watchtower-${NETWORK:-testnet}
     restart: unless-stopped
+    depends_on:
+      config-init:
+        condition: service_completed_successfully
     user: "10002:10002"
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     tmpfs: [/tmp]
     volumes:
-      - ./config.yaml:/etc/watchtower/config.yaml:ro
+      - watchtower-config:/etc/watchtower:ro
       - watchtower-state:/var/lib/watchtower
     environment:
       NETWORK:             ${NETWORK}
@@ -30,3 +71,4 @@ services:
 
 volumes:
   watchtower-state:
+  watchtower-config:

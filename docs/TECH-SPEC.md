@@ -147,6 +147,8 @@ All roles run on the sizing in [`docs/01-hardware.md`](01-hardware.md) (testnet 
 
 ### 5.3 Watchtower
 
+> **Status: not yet runnable** — the `prismo-watchtower` binary/image is unpublished (`ghcr.io/0xprismoprotocol/watchtower:0.1.0` is a placeholder that does not resolve). This section is a design contract, not a deployable role today.
+
 | Property | Value |
 |---|---|
 | Binary | `prismo-watchtower` (Go service) |

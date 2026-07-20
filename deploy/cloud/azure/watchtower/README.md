@@ -1,5 +1,7 @@
 # Watchtower — Azure (Terraform)
 
+> **Not runnable yet** — the watchtower binary is unpublished (`ghcr.io/0xprismoprotocol/watchtower` does not resolve). Documentation-only until an image ships; see [docs/nodes/watchtower.md](../../../../docs/nodes/watchtower.md).
+
 Self-contained module: RG + VNet + NSG + public IP + tiny `Standard_B2s` (2 vCPU / 4 GB) VM, no data disk (the watchtower keeps no chain state). Runs the docker-compose **watchtower** stack via cloud-init. Outbound-only — SSH is the only inbound NSG rule.
 
 Needs both an L1 RPC and an L2 RPC (point `l2_rpc_url` at your own full node) so it can cross-check what the sequencer publishes.

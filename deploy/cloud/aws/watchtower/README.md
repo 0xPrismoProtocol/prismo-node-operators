@@ -1,5 +1,7 @@
 # Watchtower — AWS
 
+> **Not runnable yet** — the watchtower binary is unpublished (`ghcr.io/0xprismoprotocol/watchtower` does not resolve). Documentation-only until an image ships; see [docs/nodes/watchtower.md](../../../../docs/nodes/watchtower.md).
+
 Tiny instance — `t3.medium` is plenty.
 
 Pattern: copy `../rpc-node/main.tf`, change `instance_type` to `t3.medium`, drop the EBS data volume (50 GB root is enough), swap the compose path in `cloud-init.yaml` to `deploy/docker-compose/watchtower/`. Pass `network` var to deploy a testnet or mainnet watchtower.
