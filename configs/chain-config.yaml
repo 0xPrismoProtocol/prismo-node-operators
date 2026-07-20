@@ -33,14 +33,19 @@ http.corsdomain: any
 ws: true
 
 # --- Metrics ---
-# 0.0.0.0 is the CONTAINER-internal bind — this config file's value beats any
-# --metrics.addr CLI flag passed by the compose files (verified live: with the
-# compose's --metrics.addr=0.0.0.0 flag present but this pinned to 127.0.0.1,
-# the host-side curl to the published port failed). Host-side exposure stays
-# local-only regardless, via the "127.0.0.1:9091:9091" port mapping in compose.
+# metrics.addr / metrics.port are deliberately NOT pinned in this shared file.
+# cdk-erigon applies the config file's metrics-group settings UNCONDITIONALLY —
+# they beat a --metrics.addr / --metrics.port CLI flag. That config-over-CLI
+# precedence is a quirk of the METRICS GROUP ONLY; for every other key
+# (http.addr, datadir, ...) the CLI flag wins when it is set. Pinning a bind
+# here would therefore silently override each deploy target's intended metrics
+# bind: the compose files need 0.0.0.0 (a container-internal bind; host exposure
+# is limited by the "127.0.0.1:9091:9091" port mapping), while the bare-metal
+# systemd unit needs 127.0.0.1 (no port-mapping layer, so a 0.0.0.0 bind would
+# expose metrics on every host interface, contradicting docs/04-security.md).
+# Each target sets its own --metrics.addr / --metrics.port on the CLI; leaving
+# them out here lets those flags actually take effect.
 metrics: true
-metrics.addr: 0.0.0.0
-metrics.port: 9091
 
 # --- Pruning: DISABLED by default (matches the reference RPC tier, and
 # REQUIRED for snapshot restores — published snapshots come from an unpruned
