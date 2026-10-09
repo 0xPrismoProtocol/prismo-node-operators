@@ -102,7 +102,7 @@ Convenience: `scripts/healthcheck.sh`.
 **Default: unpruned (archive).** The shipped [`configs/chain-config.yaml`](../../configs/chain-config.yaml) does not set `prune` at all, so full historical state, headers, and receipts are retained (serves `debug_traceTransaction` for any historical block, if you enable `debug` in `http.api` — see [04-security.md](../04-security.md)). Two reasons this is the default rather than pruned:
 
 1. **Published snapshots are unpruned.** cdk-erigon hard-refuses to change `--prune` mode on an existing datadir ("not allowed change of `--prune` flag") — a node restored from a [published snapshot](../03-snapshots.md) can never switch to pruned later.
-2. **Reference-tier parity.** The public reference RPC (`rpc.glassnet.prismo.network`) runs unpruned; a pruned node behind it would silently serve less history than the tier it's supposed to complement.
+2. **Reference-tier parity.** The public reference RPCs (`rpc.prismo.network`, `rpc.glassnet.prismo.network`) run unpruned; a pruned node behind it would silently serve less history than the tier it's supposed to complement.
 
 Disk grows accordingly with chain size — see [01-hardware.md](../01-hardware.md) for current numbers; there's no fixed floor to plan against, only headroom.
 
@@ -135,6 +135,9 @@ See [docs/04-security.md](../04-security.md). Short version:
 
 Once running, register at:
 
-- (TBD) `https://chainlist.testnet.prismo.example` — Prismo testnet RPC registry
-- (TBD) `https://chainlist.prismo.example` — Prismo mainnet RPC registry
-- (Optional) [chainlist.org](https://chainlist.org) for mainnet
+- (TBD) Prismo RPC registry — not yet published; open an issue on this repo with your endpoint in the meantime
+- (Optional) [chainlist.org](https://chainlist.org) — mainnet chain ID `328`, currency `USDC` (18 decimals)
+
+## Mainnet notes
+
+Read [02-network-config.md — Mainnet facts operators must know](../02-network-config.md#mainnet-facts-operators-must-know) first. Short version: the chain accepts only legacy (type-0) transactions, enforces an 816 gwei gas floor, and does not yet post batches or proofs to L1 — so `zkevm_virtualBatchNumber` / `zkevm_verifiedBatchNumber` will not advance on your node and that is expected, not a sync fault.

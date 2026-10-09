@@ -25,11 +25,11 @@ networks:
       rollup: "0x920A41e4718639f0629407c9C14b0CaC9A266EF6"
       gerManager: "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF"
   mainnet:
-    l2ChainId: TBD
-    l1FirstBlock: TBD
+    l2ChainId: 328
+    l1FirstBlock: 26136887
     contracts:
-      rollup: TBD
-      gerManager: TBD
+      rollup: "0xC2cBC231C486f7732473dD435a60f77e151d227d"
+      gerManager: "0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71"
 
 image:
   repository: ghcr.io/0xprismoprotocol/watchtower

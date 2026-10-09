@@ -81,20 +81,22 @@ A single `NETWORK ∈ {testnet, mainnet}` variable selects all chain-specific va
 | Field | Testnet | Mainnet |
 |---|---|---|
 | L1 chain | Sepolia (`11155111`) | Ethereum (`1`) |
-| L2 chain ID | `101001000` | TBD |
-| L2 chain name | `dynamic-glassnet` | TBD |
-| L1 first block | `11147580` | TBD |
-| Rollup manager (L1) | `0x920A41e4718639f0629407c9C14b0CaC9A266EF6` | TBD |
-| Rollup Etrog (rollupID 1) | `0xFfA25304376eE1274ff6A348400C03f444F22B95` | TBD |
-| GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | TBD |
-| Gas token USDC (L1) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` | TBD |
-| Sequencer EOA (`--zkevm.address-sequencer`, L2 coinbase) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | TBD |
-| Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | TBD |
-| Bridge L1 / L2 | `0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d` | TBD |
-| Datastream | `datastream.glassnet.prismo.network:6900` (public, relay-fronted) | TBD |
-| Trusted sequencer RPC (`SEQUENCER_RPC_URL`) | `https://sequencer.glassnet.prismo.network` | TBD |
-| Datastream version | `2` | TBD |
-| Rollup ID | `1` | TBD |
+| L2 chain ID | `101001000` | `328` |
+| L2 chain name | `dynamic-glassnet` | `dynamic-glass` |
+| L1 first block | `11147580` | `26136887` |
+| Rollup manager (L1) | `0x920A41e4718639f0629407c9C14b0CaC9A266EF6` | `0xC2cBC231C486f7732473dD435a60f77e151d227d` |
+| Rollup Etrog (rollupID 1) | `0xFfA25304376eE1274ff6A348400C03f444F22B95` | `0x261ECc4303b184F08bB6bDb43d653Ba4B65Ac956` |
+| GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
+| Gas token USDC18Wrapper (L1) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` | `0xCB7B19F31EDda9e857899f99aFd732542079146f` |
+| Sequencer EOA (`--zkevm.address-sequencer`, L2 coinbase) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
+| Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |
+| Bridge L1 / L2 | `0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d` | `0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4` |
+| Datastream | `datastream.glassnet.prismo.network:6900` (public, relay-fronted) | `datastream.prismo.network:6900` (public, relay-fronted) |
+| Trusted sequencer RPC (`SEQUENCER_RPC_URL`) | `https://sequencer.glassnet.prismo.network` | `https://sequencer.prismo.network` |
+| Datastream version | `2` | `2` |
+| Rollup ID | `1` | `1` |
+| Transaction types | legacy (type-0) only | legacy (type-0) only |
+| L1 settlement (batches + proofs) | active (windowed prover) | **not yet enabled** (post-launch) |
 
 Loading rules per deploy target:
 - **docker-compose / systemd:** [`scripts/load-network-env.sh`](../scripts/load-network-env.sh) / `EnvironmentFile=` — `network.env` loaded first, role `.env` second (role wins).
@@ -185,7 +187,7 @@ All roles run on the sizing in [`docs/01-hardware.md`](01-hardware.md) (testnet 
 **Requirements:**
 - **R-11 (censorship resistance):** the indexer's purpose is that withdrawals remain claimable even if the official bridge UI/indexer is down or censoring — it MUST be self-hostable end-to-end from public inputs.
 - **R-12:** requires a dedicated Postgres (co-located or external); proof correctness depends on a gap-free event index from `L1_FIRST_BLOCK`.
-- **R-13:** bridge contract addresses come from `configs/networks/<NETWORK>.env` (populated for testnet since the 2026-06-27 re-genesis; TBD on mainnet) — the indexer MUST refuse to start with placeholder/`TBD` addresses rather than index against `0x0`.
+- **R-13:** bridge contract addresses come from `configs/networks/<NETWORK>.env` (testnet since the 2026-06-27 re-genesis; mainnet since the 2026-10-07 genesis) — the indexer MUST refuse to start with placeholder/`TBD` addresses rather than index against `0x0`.
 
 ---
 
@@ -238,11 +240,12 @@ Every role ships all four targets; the chosen target does not change the role's 
 
 ## 9. Open Items
 
-- **Mainnet values:** all `TBD` in §4 populated only after mainnet contracts deploy.
-- **Bridge addresses:** `0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d` (testnet, 2026-06-27 re-genesis); mainnet `TBD` — populate from its step 04 output.
+- **Mainnet settlement:** batches/proofs are not yet posted to L1 on mainnet (chain 328); the virtual/verified finality tiers (§5, docs/05-integration.md) do not advance there until the core team enables settlement. The 1,000-USDC genesis prefund (docs/02-network-config.md) is unbacked on L1 until then.
+- **Mainnet image:** the pinned upstream `cdk-erigon:v2.61.24` advertises EIP-1559 although the chain accepts only type-0 txs; a public build of the Prismo RPC-layer patch is pending.
+- **Mainnet snapshots:** not yet published (`https://snapshots.prismo.network` reserved).
 - **Watchtower binary:** `ghcr.io/0xprismoprotocol/watchtower:0.1.0` is a placeholder; binary not yet open-sourced, so the image does not resolve yet.
 - **Public registries:** RPC registry / node registry URLs are TBD.
-- **Mainnet sizing:** §5 hardware is testnet floor; re-run capacity planning with mainnet load data.
+- **Mainnet sizing:** §5 hardware is the testnet floor; mainnet launched 2026-10-07 and is small today — re-run capacity planning with mainnet load data.
 
 ---
 

@@ -2,24 +2,35 @@
 
 Using your node from your own applications — wallets, dapps, backends, or scripts.
 
-This assumes you're pointed at either the public reference RPC (`https://rpc.glassnet.prismo.network`, rate-limited) or a node you run yourself following [docs/nodes/rpc-node.md](nodes/rpc-node.md). Everything below applies to both; only the URL changes.
+This assumes you're pointed at either a public reference RPC (`https://rpc.prismo.network` for mainnet, `https://rpc.glassnet.prismo.network` for testnet — both rate-limited) or a node you run yourself following [docs/nodes/rpc-node.md](nodes/rpc-node.md). Everything below applies to all of them; only the URL and chain ID change.
 
 ## Connect
 
-Chain ID `101001000` (testnet). See [docs/02-network-config.md](02-network-config.md) for the mainnet value once it exists.
+| Network | Chain ID | RPC | Currency |
+|---|---|---|---|
+| Prismo Glass (mainnet) | `328` | `https://rpc.prismo.network` | USDC, **18 decimals** |
+| Glassnet (testnet) | `101001000` | `https://rpc.glassnet.prismo.network` | USDC (test), **18 decimals** |
+
+> **Mainnet accepts only legacy (type-0) transactions.** Pin `type: 0` in every mainnet transaction you build (ethers: `{ type: 0, gasPrice }`; viem: `type: 'legacy'`). The reference RPC hides EIP-1559 so default wallets do the right thing, but a node run from this repo's upstream image does not — see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know).
 
 ### ethers v6
 
 ```js
 import { JsonRpcProvider } from "ethers";
 
+// Mainnet (Prismo Glass)
 const provider = new JsonRpcProvider(
-  "https://rpc.glassnet.prismo.network", // or http://127.0.0.1:8545 for your own node
-  { chainId: 101001000, name: "prismo-glassnet-testnet" }
+  "https://rpc.prismo.network", // or http://127.0.0.1:8545 for your own node
+  { chainId: 328, name: "prismo-glass" }
 );
-
 const network = await provider.getNetwork();
-console.log(network.chainId); // 101001000n
+console.log(network.chainId); // 328n
+
+// Sending on mainnet: force a legacy transaction
+const tx = await signer.sendTransaction({ to, value, type: 0, gasPrice: await provider.send("eth_gasPrice", []) });
+
+// Testnet (Glassnet): same shape with "https://rpc.glassnet.prismo.network" and
+// { chainId: 101001000, name: "prismo-glassnet-testnet" }.
 ```
 
 ### viem
@@ -27,27 +38,36 @@ console.log(network.chainId); // 101001000n
 ```js
 import { createPublicClient, http, defineChain } from "viem";
 
+export const prismoGlass = defineChain({
+  id: 328,
+  name: "Prismo Glass",
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 }, // see Currency below — 18, not 6
+  rpcUrls: { default: { http: ["https://rpc.prismo.network"] } },
+  blockExplorers: { default: { name: "Prismo Explorer", url: "https://explorer.prismo.network" } },
+  fees: { defaultPriorityFee: 0n },
+});
+
 export const glassnetTestnet = defineChain({
   id: 101001000,
   name: "Prismo Glassnet Testnet",
-  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 }, // see Currency below — 18, not 6
-  rpcUrls: {
-    default: { http: ["https://rpc.glassnet.prismo.network"] },
-  },
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.glassnet.prismo.network"] } },
 });
 
-const client = createPublicClient({ chain: glassnetTestnet, transport: http() });
-console.log(await client.getChainId()); // 101001000
+const client = createPublicClient({ chain: prismoGlass, transport: http() });
+console.log(await client.getChainId()); // 328
+
+// Writes on mainnet: pass type: 'legacy' (and gasPrice) to every sendTransaction / writeContract.
 ```
 
 ## Currency semantics
 
-The chain's **native gas token is USDC — but not canonical 6-decimal USDC.** It's an 18-decimal wrapper (`USDC18Wrapper`, see [docs/02-network-config.md](02-network-config.md#l1-contract-addresses) for the L1 contract address) over an open-mint testnet token. Symbol and name both read `USDC`, and 1 token displays as `1 USDC` — but:
+The chain's **native gas token is USDC — but not canonical 6-decimal USDC.** It's an 18-decimal wrapper (`USDC18Wrapper`, see [docs/02-network-config.md](02-network-config.md#l1-contract-addresses) for the L1 contract address): on mainnet over canonical Ethereum USDC (`0xA0b86991…`), on testnet over an open-mint test token. Symbol and name both read `USDC`, and 1 token displays as `1 USDC` — but:
 
 - **Set `decimals: 18`** in any chain/wallet config (MetaMask "Add Network," viem `defineChain`, etc.). Using `6` (canonical USDC's real decimal count) will misdisplay balances by a factor of 10¹².
 - Gas prices, `eth_getBalance`, and `msg.value` are all denominated in this 18-decimal unit, exactly like ETH on L1 — the only difference from a "normal" chain is the token's name/symbol.
-- Get testnet funds: `https://faucet.glassnet.prismo.network`.
-- This is a testnet-only convenience token. It is **not** bridgeable 1:1 with real USDC and has no independent value.
+- **Mainnet:** gas is real USDC. Bridge it in from Ethereum through the bridge contract (`0xB6F28976…`) / `https://bridge.prismo.network`; 1 USDC on L1 becomes 1 USDC (10¹⁸ base units) on L2. Withdrawals back to L1 are not claimable until settlement is enabled (see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know)). The gas floor is 816 gwei ≈ 0.017 USDC per simple transfer.
+- **Testnet:** get funds at `https://faucet.glassnet.prismo.network`. The testnet token is **not** bridgeable 1:1 with real USDC and has no independent value.
 
 ## Available RPC namespaces
 
@@ -63,7 +83,7 @@ Verified live against a Prismo node (`http://127.0.0.1:8545`, cdk-erigon v2.61.2
 
 ## WebSocket
 
-- **Public reference endpoint**: `wss://rpc.glassnet.prismo.network` — same hostname as the HTTP RPC. The ALB in front of it routes on the `Upgrade: websocket` header; there is no separate `/ws` path.
+- **Public reference endpoints**: `wss://rpc.prismo.network` (mainnet) / `wss://rpc.glassnet.prismo.network` (testnet) — same hostname as the HTTP RPC. The ALB in front of it routes on the `Upgrade: websocket` header; there is no separate `/ws` path.
 - **Your own node**: cdk-erigon serves WS on `:8546` (`ws://127.0.0.1:8546` locally). If you front it with nginx per the [reverse-proxy example](04-security.md#reverse-proxy-nginx), that example proxies WS at a `/ws` location — that's an operator-chosen convention for your own deployment, not a property of the protocol.
 
 ```js
@@ -83,7 +103,11 @@ wsProvider.on("block", (blockNumber) => console.log("new block", blockNumber));
 
 ## Finality tiers
 
-Query these with `zkevm_batchNumber` / `zkevm_virtualBatchNumber` / `zkevm_verifiedBatchNumber`. Verified live outputs (testnet, 2026-07-08 — values will differ when you query, shown to confirm the methods and response shape):
+Query these with `zkevm_batchNumber` / `zkevm_virtualBatchNumber` / `zkevm_verifiedBatchNumber`.
+
+> **Mainnet today: only the trusted head exists.** Settlement is not yet enabled on Prismo Glass, so `zkevm_virtualBatchNumber` stays at `1` and `zkevm_verifiedBatchNumber` at `0` until the core team turns it on. Treat every mainnet transaction as trusted-head-only finality for now, and do not build flows that wait on the verified tier until it starts advancing. See [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know).
+
+Verified live outputs (testnet, 2026-07-08 — values will differ when you query, shown to confirm the methods and response shape):
 
 ```
 $ curl -s localhost:8545 -d '{"jsonrpc":"2.0","method":"zkevm_batchNumber","params":[],"id":1}'
@@ -110,4 +134,4 @@ A transaction is "confirmed" at a given tier once `zkevm_batchNumber` (its batch
 
 ## Bridge API
 
-Claiming a withdrawal (L2 → L1) requires a Merkle proof from a bridge indexer — the reference one is at `https://bridge.glassnet.prismo.network` (`BRIDGE_API_URL`). See [docs/nodes/bridge-indexer.md](nodes/bridge-indexer.md) for the API surface (`/merkle-proof`, `/bridges/<address>`, `/claims/<address>`) and how to run your own if you don't want to depend on the official one. Claim proofs for a given deposit only become valid once the corresponding batch is **verified** (see Finality tiers above) — the bridge contract checks against a verified global exit root.
+Claiming a withdrawal (L2 → L1) requires a Merkle proof from a bridge indexer — the reference ones are at `https://bridge.prismo.network` (mainnet) and `https://bridge.glassnet.prismo.network` (testnet) (`BRIDGE_API_URL`). See [docs/nodes/bridge-indexer.md](nodes/bridge-indexer.md) for the API surface (`/merkle-proof`, `/bridges/<address>`, `/claims/<address>`) and how to run your own if you don't want to depend on the official one. Claim proofs for a given deposit only become valid once the corresponding batch is **verified** (see Finality tiers above) — the bridge contract checks against a verified global exit root.

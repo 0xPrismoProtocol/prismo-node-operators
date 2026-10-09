@@ -82,4 +82,4 @@ Pin versions in `docker-compose.yml` — never use `:latest` in production.
 | RAM | 16–30 GB (compose reserves 16 G / caps 30 G — a headroom tier above the 8 GB documented minimum; measured resident on testnet is far lower). See [docs/01-hardware.md](../../../docs/01-hardware.md#per-node-role). |
 | Disk | starts at ~50 GB (snapshot), grows ~150 GB/month on testnet in archive mode (the shipped default); ~30 GB/month if pruned. See [docs/01-hardware.md](../../../docs/01-hardware.md#disk-growth). |
 
-Mainnet sizing TBD — expect higher RAM and disk under sustained load.
+Mainnet (Prismo Glass) launched 2026-10-07 and is small today — the same tier is more than enough; re-check [docs/01-hardware.md](../../../docs/01-hardware.md) as it grows.

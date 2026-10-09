@@ -127,6 +127,10 @@ groups:
       # Testnet seals batches at 1h idle (zkevm.sequencer-batch-seal-time=1h since the
       # 2026-06-27 re-genesis), so SequenceBatches lands on L1 at best ~hourly — a 1h
       # threshold would flap. 4h catches a dead sequence-sender without false alarms.
+      # MAINNET: settlement is not yet enabled (no SequenceBatches / VerifyBatches
+      # are posted to L1 at all — see docs/02-network-config.md), so this alert and
+      # PrismoVerifierSilent fire permanently there. Silence them with
+      # network="mainnet" in Alertmanager until the core team enables settlement.
       - alert: PrismoSequencerSilent
         expr: time() - prismo_watchtower_last_sequence_batch_timestamp > 14400
         labels: { severity: warning }

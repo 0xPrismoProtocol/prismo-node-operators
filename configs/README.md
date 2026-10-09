@@ -5,10 +5,11 @@ Canonical chain configuration for public Prismo nodes — works for both **testn
 | File | Purpose |
 |---|---|
 | `networks/testnet.env` / `testnet.json` | Testnet values (Sepolia L1, chain `101001000`) |
-| `networks/mainnet.env` / `mainnet.json` | Mainnet values (Ethereum L1, all `TBD` until deploy) |
+| `networks/mainnet.env` / `mainnet.json` | Mainnet values (Ethereum L1, chain `328`, Prismo Glass) |
 | `chain-config.yaml` | Network-agnostic cdk-erigon flag set (HTTP, metrics, prune) |
 | `dynamic-glassnet-allocs.json` / `-chainspec.json` / `-conf.json` | Testnet chain files — cdk-erigon dynamic-chain definition, chain-name-keyed |
-| `testnet/genesis.json` | cdk-node-style genesis (root + actions); informational, not read by cdk-erigon |
+| `dynamic-glass-allocs.json` / `-chainspec.json` / `-conf.json` | Mainnet chain files (chain name `dynamic-glass`) |
+| `testnet/genesis.json` / `mainnet/genesis.json` | cdk-node-style genesis (root + accounts); informational, not read by cdk-erigon |
 | `CHECKSUMS.txt` | SHA-256 of files in this directory |
 
 ## How it fits together
@@ -19,21 +20,25 @@ Pick a network with `NETWORK=testnet` (or `NETWORK=mainnet`) in your `.env` / He
 
 ## Chain files (dynamic-\<chain\>-\*.json)
 
-These **are committed** in this directory, mirrored from the 2026-06-27 USDC re-genesis (genesis root `0xc2d11ba9f21d1118d695a6462f9d2ee6cf809f18ca68900c0d55ef5d8375801d`) and checksummed in `CHECKSUMS.txt`:
+These **are committed** in this directory and checksummed in `CHECKSUMS.txt`. Testnet files mirror the 2026-06-27 USDC re-genesis (genesis root `0xc2d11ba9f21d1118d695a6462f9d2ee6cf809f18ca68900c0d55ef5d8375801d`); mainnet files mirror the 2026-10-07 Prismo Glass genesis (root `0x8d57491b40ebea2099f08f34739a780e0cce883253e1d5bd4f19b1728aa8b53f`), byte-identical to what the reference RPC tier runs:
 
 ```
 configs/
-├── dynamic-glassnet-allocs.json     # cdk-erigon dynamic-chain files — MUST sit
-├── dynamic-glassnet-conf.json       # next to chain-config.yaml (cdk-erigon
-├── dynamic-glassnet-chainspec.json  # resolves dynamic-<chain>-*.json relative
-│                                    # to the --config file's directory)
-└── testnet/
-    └── genesis.json                 # cdk-node-style genesis; not read by cdk-erigon
+├── dynamic-glassnet-allocs.json     # TESTNET — cdk-erigon dynamic-chain files;
+├── dynamic-glassnet-conf.json       # MUST sit next to chain-config.yaml
+├── dynamic-glassnet-chainspec.json  # (cdk-erigon resolves dynamic-<chain>-*.json
+├── dynamic-glass-allocs.json        # MAINNET   relative to the --config file's
+├── dynamic-glass-conf.json          #           directory)
+├── dynamic-glass-chainspec.json
+├── testnet/
+│   └── genesis.json                 # cdk-node-style genesis; not read by cdk-erigon
+└── mainnet/
+    └── genesis.json                 # same, for Prismo Glass (13 accounts)
 ```
 
-The files are chain-name-keyed (`dynamic-<L2_CHAIN_NAME>-*.json`), so multiple networks coexist flat in this same directory without subfolders — mainnet's `dynamic-<mainnet-chain-name>-*.json` files will be added alongside once mainnet deploys. cdk-erigon's `--chain` flag must match `L2_CHAIN_NAME` for the active network. Full detail: [docs/02-network-config.md#genesis--allocations](../docs/02-network-config.md#genesis--allocations).
+The files are chain-name-keyed (`dynamic-<L2_CHAIN_NAME>-*.json`), so both networks coexist flat in this same directory without subfolders. cdk-erigon's `--chain` flag must match `L2_CHAIN_NAME` for the active network (`dynamic-glassnet` / `dynamic-glass`). Full detail: [docs/02-network-config.md#genesis--allocations](../docs/02-network-config.md#genesis--allocations).
 
-> `dynamic-glassnet-conf.json` is intentionally just `{"timestamp": 0}` — for this dynamic chain cdk-erigon reads chain parameters from `-chainspec.json` and initial state from `-allocs.json`; `-conf.json` only supplies the genesis L2 timestamp (`0`). It is **complete, not truncated** (its SHA-256 is pinned in `CHECKSUMS.txt`).
+> Both `dynamic-*-conf.json` files are intentionally just `{"timestamp": 0}` — for these dynamic chains cdk-erigon reads chain parameters from `-chainspec.json` and initial state from `-allocs.json`; `-conf.json` only supplies the genesis L2 timestamp (`0`). They are **complete, not truncated** (SHA-256 pinned in `CHECKSUMS.txt`).
 
 **Always verify the SHA-256 in `CHECKSUMS.txt` before using these files** (see Verifying below).
 

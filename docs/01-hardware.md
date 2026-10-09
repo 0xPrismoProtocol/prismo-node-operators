@@ -56,6 +56,6 @@ Monthly cost rough order (comfortable-minimum sizing above): AWS ~$110, Hetzner 
 
 ## Latency Considerations
 
-- Sequencer data stream is in `us-east-1` (testnet; mainnet location TBD). RPC nodes in Asia/EU lag ~150–250 ms behind sequencer head — fine for normal use.
+- Sequencer data stream is in `us-east-1` (both networks). RPC nodes in Asia/EU lag ~150–250 ms behind sequencer head — fine for normal use.
 - Watchtowers can run anywhere — they only read L1 events.
 - Bridge indexer is read-mostly; latency unimportant.

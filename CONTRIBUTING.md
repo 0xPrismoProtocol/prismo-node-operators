@@ -8,7 +8,7 @@ Operator-facing infrastructure: deploy manifests, configs, monitoring, runbooks.
 
 - Fixes to deploy manifests (Docker Compose, systemd, k8s, Terraform)
 - Corrections to chain config / contract addresses (must cite source) — testnet *or* mainnet
-- Mainnet population PRs — replacing `TBD` in `configs/networks/mainnet.{env,json}` once contracts are deployed (must cite the deploy tx / commit)
+- Network-value corrections — any change to `configs/networks/*.{env,json}` must cite the on-chain source (deploy tx / contract read / live node config)
 - New operator runbooks and troubleshooting entries
 - Monitoring rules: Prometheus alerts, Grafana panels
 - New deploy targets (e.g. NixOS module, Ansible role) — open an issue first
@@ -16,7 +16,7 @@ Operator-facing infrastructure: deploy manifests, configs, monitoring, runbooks.
 
 ## Network parity rule
 
-A change that touches a per-network value must update **both** `testnet.env` and `mainnet.env` (mainnet stays `TBD` if the value isn't known yet — but the *key* must exist on both sides). Same for the JSON twins. Keeps the env-var contract stable.
+A change that touches a per-network value must update **both** `testnet.env` and `mainnet.env` (a value genuinely unknown on one side is written as `TBD` — but the *key* must exist on both sides). Same for the JSON twins. Keeps the env-var contract stable.
 
 ## What we don't accept here
 

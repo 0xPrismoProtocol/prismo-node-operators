@@ -1,0 +1,119 @@
+# Helm values for a Prismo RPC node — MAINNET (Prismo Glass, chain 328,
+# cdk-erigon chain name dynamic-glass), wired to the keys read by
+# ../chart/values.yaml (deploy/kubernetes/chart). Sibling of values.yaml
+# (testnet); one values file == one network — never mix the two with
+# `network:` switches.
+#
+# Every per-network value below is pre-filled from
+# configs/networks/mainnet.env. The only thing you must supply is an
+# Ethereum MAINNET L1 RPC (config.l1RpcUrl or config.l1RpcUrlSecret) that
+# serves historical eth_getLogs back to block 26136887.
+#
+# Quickstart (from repo root):
+#   helm install prismo-rpc ./deploy/kubernetes/chart \
+#     -f deploy/kubernetes/rpc-node/values-mainnet.yaml \
+#     -n prismo --create-namespace \
+#     --set config.l1RpcUrl="$L1_RPC_URL_MAINNET"
+#
+# Or via a Secret (recommended — keeps a keyed URL out of `helm history`):
+#   kubectl create secret generic prismo-rpc-l1 -n prismo \
+#     --from-literal=url="$L1_RPC_URL_MAINNET"
+#   helm install prismo-rpc ./deploy/kubernetes/chart \
+#     -f deploy/kubernetes/rpc-node/values-mainnet.yaml \
+#     -n prismo --create-namespace \
+#     --set config.l1RpcUrlSecret.name=prismo-rpc-l1 \
+#     --set config.l1RpcUrlSecret.key=url
+#
+# See deploy/kubernetes/rpc-node/README.md and docs/02-network-config.md
+# ("Mainnet facts operators must know") before exposing this node publicly.
+
+network: mainnet
+
+image:
+  repository: ghcr.io/0xpolygon/cdk-erigon
+  tag: v2.61.24
+  # Pin by index digest so a re-pushed tag can't change the running image.
+  # Verified against ghcr 2026-07-20. Update alongside tag; blank to skip.
+  digest: sha256:cf93eff2be9744e12b0ce96ba48c9fe43b30e44a1f9f54f3a34d4039f363b2ab
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+config:
+  # Selects chart/files/dynamic-glass-{allocs,conf,chainspec}.json.
+  chainName: dynamic-glass
+
+  l2ChainId: 328
+  l1ChainId: 1
+  l1FirstBlock: 26136887
+  rollupId: 1
+  datastreamVersion: 2
+
+  # Trusted sequencer's OWN RPC — never a public RPC tier. See chart/values.yaml
+  # for why (public tier answers 0x0, silently wedging sync at block 0).
+  sequencerRpcUrl: "https://sequencer.prismo.network"
+
+  datastreamerHost: "datastream.prismo.network"
+  datastreamerPort: 6900
+
+  # --- YOU MUST SUPPLY ONE OF THESE TWO (Ethereum mainnet endpoint) ---
+  l1RpcUrl: ""
+  l1RpcUrlSecret: {}
+
+  # RollupManager (feeds BOTH zkevm.address-rollup and zkevm.address-zkevm).
+  addressRollup: "0xC2cBC231C486f7732473dD435a60f77e151d227d"
+  addressGerManager: "0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71"
+  # USDC18Wrapper (18-decimal gas token over canonical USDC) — not raw USDC.
+  l1MaticContractAddress: "0xCB7B19F31EDda9e857899f99aFd732542079146f"
+  addressSequencer: "0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783"
+  addressAdmin: "0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783"
+
+  httpApi: "eth,net,web3,txpool,zkevm"
+
+  l1BlockRange: 2000
+  l1QueryDelay: 6000
+
+# Fresh-genesis-sync only — see chart/values.yaml. Unpruned (archive) by
+# default, matching the reference tier and any future published snapshots.
+pruning:
+  enabled: false
+
+persistence:
+  enabled: true
+  storageClassName: ""   # empty = cluster default StorageClass
+  size: 200Gi             # mainnet is young (launched 2026-10-07); raise as the archive grows
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 4Gi
+  limits:
+    cpu: "2"
+    memory: 8Gi
+
+service:
+  type: ClusterIP
+  ports:
+    rpc: 8545
+    ws: 8546
+    metrics: 9091
+
+ingress:
+  enabled: false   # bring your own TLS + rate-limit; see docs/04-security.md
+
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+# No mainnet snapshots are published yet (docs/03-snapshots.md); sync from
+# genesis. Flip on once an index exists at https://snapshots.prismo.network.
+snapshot:
+  enabled: false
+  url: ""
+  sha256: ""

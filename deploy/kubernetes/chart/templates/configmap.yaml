@@ -93,12 +93,21 @@ data:
 
   # Chain files — MUST sit next to config.yaml (cdk-erigon resolves
   # dynamic-<chain>-*.json relative to the --config file's directory).
-  # Mirrored byte-for-byte from configs/dynamic-glassnet-*.json via
-  # .Files.Get — see files/README.md and sync-chart-files.sh for how these
-  # stay in sync, and configs/CHECKSUMS.txt to verify them independently.
-  {{ .Values.config.chainName }}-allocs.json: |
-{{ .Files.Get "files/dynamic-glassnet-allocs.json" | indent 4 }}
-  {{ .Values.config.chainName }}-conf.json: |
-{{ .Files.Get "files/dynamic-glassnet-conf.json" | indent 4 }}
-  {{ .Values.config.chainName }}-chainspec.json: |
-{{ .Files.Get "files/dynamic-glassnet-chainspec.json" | indent 4 }}
+  # Selected by config.chainName: files/<chainName>-{allocs,conf,chainspec}.json,
+  # mirrored byte-for-byte from configs/<chainName>-*.json — see files/README.md
+  # and sync-chart-files.sh for how they stay in sync, and
+  # configs/CHECKSUMS.txt to verify them independently. A chainName with no
+  # bundled files fails the render here rather than booting an empty chain.
+  {{- $chain := .Values.config.chainName }}
+  {{- $allocs := .Files.Get (printf "files/%s-allocs.json" $chain) }}
+  {{- $conf := .Files.Get (printf "files/%s-conf.json" $chain) }}
+  {{- $spec := .Files.Get (printf "files/%s-chainspec.json" $chain) }}
+  {{- if not (and $allocs $conf $spec) }}
+  {{- fail (printf "chart/files/%s-{allocs,conf,chainspec}.json must all exist for config.chainName=%s (run deploy/kubernetes/sync-chart-files.sh)" $chain $chain) }}
+  {{- end }}
+  {{ $chain }}-allocs.json: |
+{{ $allocs | indent 4 }}
+  {{ $chain }}-conf.json: |
+{{ $conf | indent 4 }}
+  {{ $chain }}-chainspec.json: |
+{{ $spec | indent 4 }}

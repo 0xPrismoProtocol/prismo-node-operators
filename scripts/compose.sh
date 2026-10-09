@@ -36,12 +36,24 @@ NETWORK="${NETWORK:-testnet}"
 NET_FILE="$SCRIPT_DIR/../configs/networks/${NETWORK}.env"
 [[ -f "$NET_FILE" ]] || { echo "unknown NETWORK=$NETWORK (no $NET_FILE)" >&2; exit 1; }
 
+# The role's .env may carry its own NETWORK= line. Sourcing it below would
+# silently overwrite the shell's choice AFTER the other network's values were
+# loaded — project/container names (prismo-<role>-${NETWORK}) would say one
+# network while every chain flag says the other. Refuse rather than mix.
+_ENV_NETWORK="$(awk -F= '/^NETWORK=/ {print $2; exit}' "$ROLE_DIR/.env")"
+if [[ -n "$_ENV_NETWORK" && "$_ENV_NETWORK" != "$NETWORK" ]]; then
+  echo "NETWORK=$NETWORK in the shell but $ROLE_DIR/.env says NETWORK=$_ENV_NETWORK — fix one of them" >&2
+  exit 1
+fi
+
 set -a
 # shellcheck disable=SC1090
 . "$NET_FILE"
 # shellcheck disable=SC1091
 . "$ROLE_DIR/.env"
 set +a
+
+export NETWORK
 
 exec docker compose \
   -f "$ROLE_DIR/docker-compose.yml" \

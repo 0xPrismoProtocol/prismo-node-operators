@@ -4,8 +4,8 @@
 # copied from configs/networks/testnet.env — so `helm lint` / `helm template`
 # render a working config with zero overrides, and `required` guards below
 # don't trip on a blank default. For an explicit, documented, per-network
-# values file (with a mainnet TBD block), use
-# deploy/kubernetes/rpc-node/values.yaml as your -f override — see the
+# values file, use deploy/kubernetes/rpc-node/values.yaml (testnet) or
+# deploy/kubernetes/rpc-node/values-mainnet.yaml (mainnet) as your -f override — see the
 # top-level README quickstart. Only l1RpcUrl needs to be supplied by you
 # (there is no public default value for that one).
 #
@@ -43,8 +43,10 @@ replicaCount: 1
 
 # -- Chain / cdk-erigon config. Rendered into the ConfigMap's config.yaml. --
 config:
-  # --chain flag. MUST match the dynamic-<chainName>-{allocs,conf,chainspec}.json
-  # filenames bundled under chart/files/ — see files/README.md.
+  # --chain flag. Selects the bundled chain files chart/files/<chainName>-
+  # {allocs,conf,chainspec}.json — see files/README.md. Known values:
+  #   dynamic-glassnet  testnet (Glassnet, 101001000)  — rpc-node/values.yaml
+  #   dynamic-glass     mainnet (Prismo Glass, 328)    — rpc-node/values-mainnet.yaml
   chainName: dynamic-glassnet
 
   l2ChainId: 101001000

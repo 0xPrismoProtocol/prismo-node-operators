@@ -52,7 +52,9 @@ Port = 8080
 DB = { Database = "postgres", User = "bridge", Password = "${DB_PASS}", Host = "postgres", Port = "5432", Name = "bridge", MaxConns = 20 }
 ```
 
-> Bridge contracts (`BRIDGE_L1`, `BRIDGE_L2`) populated for testnet (`0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d`, 2026-06-27 re-genesis); `TBD` for mainnet (populate after its deploy step).
+> Bridge contracts (`BRIDGE_L1`, `BRIDGE_L2`): testnet `0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d` (2026-06-27 re-genesis); mainnet `0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4` (2026-10-07 genesis). Same address on L1 and L2 on both networks.
+>
+> **Mainnet:** L1 settlement is not yet enabled, so no global exit roots are verified on L1 and L2→L1 withdrawals cannot be claimed yet. Deposits (L1→L2) index normally. See [02-network-config.md](../02-network-config.md#mainnet-facts-operators-must-know).
 
 ## API surface (read-only)
 

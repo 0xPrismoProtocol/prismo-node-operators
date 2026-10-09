@@ -1,6 +1,8 @@
 # Snapshots
 
-> **Status: live.** Weekly snapshots (Sun ~07:00 UTC) — machine-readable pointers at `${SNAPSHOTS_BASE}/latest.json` (newest: `{height, timestamp, url, sha256}`) and `${SNAPSHOTS_BASE}/index.json` (recent snapshots). Restore-gate-verified 2026-07-07: download + sha256 + restore + catch-up to head, end to end.
+> **Status: testnet live, mainnet not yet published.** Mainnet (Prismo Glass) launched 2026-10-07 and is small enough to sync from genesis in well under an hour; `SNAPSHOTS_BASE` for mainnet (`https://snapshots.prismo.network`) is reserved and will serve the same `index.json`/`latest.json` layout once the publisher is enabled — until then that host does not resolve.
+>
+> **Testnet:** weekly snapshots (Sun ~07:00 UTC) — machine-readable pointers at `${SNAPSHOTS_BASE}/latest.json` (newest: `{height, timestamp, url, sha256}`) and `${SNAPSHOTS_BASE}/index.json` (recent snapshots). Restore-gate-verified 2026-07-07: download + sha256 + restore + catch-up to head, end to end.
 >
 > Two operational notes: (1) the published `height` is approximate (chain head at pack time; the underlying EBS snapshot is up to a day older, and its stages are crash-consistent — a restored node boots somewhat below the stamped height and replays forward); (2) snapshots come from an UNPRUNED datadir — cdk-erigon refuses `--prune` changes on an existing DB, so pruning cannot be enabled on a restored snapshot (see `configs/chain-config.yaml`).
 

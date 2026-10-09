@@ -15,6 +15,15 @@ Possible causes:
 | Wrong L1 first block | check `--zkevm.l1-first-block` matches `L1_FIRST_BLOCK` from the active network env | Correct env value and resync from a snapshot |
 | Datastream version mismatch | check `--zkevm.datastream-version` matches `DATASTREAM_VERSION` (2) | Update config |
 | Wrong NETWORK selected | `printenv NETWORK`; compare `eth_chainId` against `L2_CHAIN_ID` from the active env | Re-source the right `configs/networks/*.env` and restart |
+| Stuck at block 0, no errors | `curl -s -X POST $SEQUENCER_RPC_URL -d '{"jsonrpc":"2.0","method":"zkevm_getLatestDataStreamBlock","params":[],"id":1}'` returns `0x0` | `SEQUENCER_RPC_URL` must be the trusted sequencer's own RPC (`sequencer.<domain>`), never the public RPC tier — the tier answers `0x0` without erroring and the node waits forever |
+
+## Mainnet-specific (Prismo Glass, chain 328)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `eth_sendRawTransaction` → `unsupported transaction type` / `INVALID` | The chain accepts only legacy (type-0) transactions; EIP-1559 (type-2) and EIP-2930 (type-1) are rejected by the sequencer | Build type-0 txs (`type: 0`, `gasPrice`), see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know) |
+| `eth_sendRawTransaction` → gas price too low / tx never mined | 816 gwei floor (`zkevm.reject-low-gas-price-transactions`) | Use `eth_gasPrice` from any Prismo node; do not hardcode a lower price |
+| `zkevm_virtualBatchNumber` / `zkevm_verifiedBatchNumber` never move | Settlement (batches + proofs on L1) is not yet enabled on mainnet | Expected; not a sync fault. Watchtower `PrismoSequencerSilent`/`PrismoVerifierSilent` also fire for the same reason |
 
 ## "BadBlock" or state-root mismatch
 

@@ -6,16 +6,30 @@ this repo and `helm install`.
 
 ## Quickstart
 
-From the repo root:
+From the repo root — pick the values file for your network:
+
+| Network | Values file | L1 endpoint you supply |
+|---|---|---|
+| Mainnet (Prismo Glass, 328) | `deploy/kubernetes/rpc-node/values-mainnet.yaml` | Ethereum mainnet |
+| Testnet (Glassnet, 101001000) | `deploy/kubernetes/rpc-node/values.yaml` | Sepolia |
 
 ```bash
+# mainnet
+helm install prismo-rpc ./deploy/kubernetes/chart \
+  -f deploy/kubernetes/rpc-node/values-mainnet.yaml \
+  -n prismo --create-namespace \
+  --set config.l1RpcUrl="$L1_RPC_URL_MAINNET"
+
+# testnet
 helm install prismo-rpc ./deploy/kubernetes/chart \
   -f deploy/kubernetes/rpc-node/values.yaml \
   -n prismo --create-namespace \
   --set config.l1RpcUrl="$L1_RPC_URL_SEPOLIA"
 ```
 
-`$L1_RPC_URL_SEPOLIA` is a read-only Sepolia JSON-RPC endpoint (Alchemy,
+Read [docs/02-network-config.md — Mainnet facts operators must know](../../../docs/02-network-config.md#mainnet-facts-operators-must-know) before exposing a mainnet node.
+
+`$L1_RPC_URL_MAINNET` / `$L1_RPC_URL_SEPOLIA` is a read-only L1 JSON-RPC endpoint (Alchemy,
 Infura, Ankr, dRPC, or your own node) — cdk-erigon uses it at roughly
 1 req/s steady-state. There is no public default; the chart's `required`
 guards will not stop you from installing with it blank, but the pod will
@@ -56,21 +70,23 @@ standard `fullname` collision-avoidance logic; see
 `chart/templates/_helpers.tpl`). Run `kubectl get all -n prismo` if unsure, or
 set `--set fullnameOverride=prismo-rpc` at install time for a shorter name.
 
-## What's in `deploy/kubernetes/rpc-node/values.yaml`
+## What's in the values files
 
-Real values for this chart, testnet (`dynamic-glassnet`) network — chain ID,
-L1 first block, contract addresses, sequencer RPC, and datastream host:port
-are all pre-filled from [`configs/networks/testnet.env`](../../../configs/networks/testnet.env).
+`values.yaml` (testnet, `dynamic-glassnet`) and `values-mainnet.yaml`
+(mainnet, `dynamic-glass`) carry real values for this chart — chain ID, L1
+first block, contract addresses, sequencer RPC, and datastream host:port,
+pre-filled from [`configs/networks/<network>.env`](../../../configs/networks/).
 The only thing you must supply is `config.l1RpcUrl` (or
-`config.l1RpcUrlSecret`) — see Quickstart above. A `mainnet` network isn't
-wired up yet; see the note at the bottom of that file.
+`config.l1RpcUrlSecret`) — see Quickstart above. One values file == one
+network; the chart has no `networks.<name>` switch.
 
 ## Chain files
 
-The chart bundles `dynamic-glassnet-{allocs,conf,chainspec}.json` at
-`deploy/kubernetes/chart/files/` and renders them into the same ConfigMap as
-`config.yaml` (cdk-erigon requires these to sit next to its `--config` file).
-They're byte-identical mirrors of `configs/dynamic-glassnet-*.json` — see
+The chart bundles both chains' `dynamic-<chain>-{allocs,conf,chainspec}.json`
+at `deploy/kubernetes/chart/files/` and renders the set selected by
+`config.chainName` into the same ConfigMap as `config.yaml` (cdk-erigon
+requires these to sit next to its `--config` file).
+They're byte-identical mirrors of `configs/dynamic-*.json` — see
 [`deploy/kubernetes/chart/files/README.md`](../chart/files/README.md) and
 [`deploy/kubernetes/sync-chart-files.sh`](../sync-chart-files.sh) for how
 they're kept in sync, and [`configs/CHECKSUMS.txt`](../../../configs/CHECKSUMS.txt)
@@ -124,5 +140,7 @@ deny-all, allow:
 
 - Ingress from your ingress controller's namespace on `8545`/`8546`.
 - Ingress from Prometheus on `9091`.
-- Egress to your L1 RPC endpoint, `datastream.glassnet.prismo.network:6900`,
-  `sequencer.glassnet.prismo.network:443`, and DNS.
+- Egress to your L1 RPC endpoint, the network's datastream host on `6900`
+  and sequencer RPC on `443` (mainnet: `datastream.prismo.network`,
+  `sequencer.prismo.network`; testnet: `datastream.glassnet.prismo.network`,
+  `sequencer.glassnet.prismo.network`), and DNS.

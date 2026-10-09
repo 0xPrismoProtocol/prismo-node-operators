@@ -24,12 +24,12 @@ networks:
       bridgeL1: "0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d"
       bridgeL2: "0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d"
   mainnet:
-    l1FirstBlock: TBD
+    l1FirstBlock: 26136887
     contracts:
-      rollupManager: TBD
-      gerManager:    TBD
-      bridgeL1: TBD
-      bridgeL2: TBD
+      rollupManager: "0xC2cBC231C486f7732473dD435a60f77e151d227d"
+      gerManager:    "0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71"
+      bridgeL1: "0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4"
+      bridgeL2: "0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4"
 
 image:
   repository: hermeznetwork/zkevm-bridge-service

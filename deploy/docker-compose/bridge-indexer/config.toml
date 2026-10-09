@@ -1,6 +1,8 @@
 # Values templated from configs/networks/${NETWORK}.env via scripts/compose.sh.
-# BRIDGE_L1 / BRIDGE_L2 are populated for testnet (2026-06-27 re-genesis); TBD on
-# mainnet until its contract deploy.
+# BRIDGE_L1 / BRIDGE_L2: testnet 0xd7d4F6BF… (2026-06-27 re-genesis), mainnet
+# 0xB6F28976… (2026-10-07 genesis) — same address on L1 and L2 on both networks.
+# NOTE: mainnet has SETTLEMENT disabled for now (no batches verified on L1), so
+# withdrawal claims are not yet possible there; deposits index normally.
 
 [Log]
 Level = "info"

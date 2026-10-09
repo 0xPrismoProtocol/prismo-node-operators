@@ -10,9 +10,11 @@ cp .env.example .env
 # Edit .env — pick NETWORK; set L1_RPC_URL, L2_RPC_URL, DB_PASS
 
 # Bridge contract addresses (BRIDGE_L1, BRIDGE_L2) come from the active
-# configs/networks/${NETWORK}.env — populated for testnet (both are
-# 0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d since the 2026-06-27 re-genesis),
-# TBD for mainnet. If they ever change, patch that file, not config.toml here.
+# configs/networks/${NETWORK}.env — testnet: 0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d
+# (2026-06-27 re-genesis); mainnet: 0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4
+# (2026-10-07 genesis). If they ever change, patch that file, not config.toml here.
+# Mainnet note: L1 settlement is not yet enabled, so withdrawals cannot be
+# claimed there yet (deposits index normally) — see docs/02-network-config.md.
 
 ../../../scripts/compose.sh bridge-indexer up -d
 ../../../scripts/compose.sh bridge-indexer logs -f bridge-service

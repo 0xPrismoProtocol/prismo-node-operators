@@ -46,7 +46,7 @@ First boot: L1 syncs (~1–2 hours via checkpoint sync on testnet, longer on mai
 |---|---|---|
 | `l1-geth` | ~120 GB | ~1.2 TB |
 | `l1-lh` | ~80 GB | ~150 GB |
-| `chaindata` (Prismo) | ~50 GB + 30 GB/month | TBD |
+| `chaindata` (Prismo) | ~50 GB + 30 GB/month | small today (launched 2026-10-07); plan the same growth |
 
 ## Difference from RPC node
 

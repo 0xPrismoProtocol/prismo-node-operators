@@ -1,10 +1,10 @@
 # Prismo Node Operators
 
-Run public infrastructure for the **Prismo zkEVM** (Polygon CDK Erigon rollup) — testnet today, mainnet on the same manifests once contracts are deployed.
+Run public infrastructure for the **Prismo zkEVM** (Polygon CDK Erigon rollup) — **Prismo Glass mainnet** (chain 328, settling to Ethereum) and the **Glassnet testnet** (chain 101001000, settling to Sepolia), from the same manifests.
 
 This repository contains everything an external operator needs to run **non-sequencer** nodes: configuration, deploy manifests for four targets, monitoring rules, and operational guides.
 
-> **Status:** Testnet live. Mainnet contracts: not yet deployed. The sequencer and aggregator are operated by the Prismo core team. All node roles in this repo are permissionless to run.
+> **Status:** Mainnet live since 2026-10-07 (genesis root `0x8d57491b…`); testnet live. The sequencer and aggregator are operated by the Prismo core team. All node roles in this repo are permissionless to run. **Read [Mainnet facts operators must know](docs/02-network-config.md#mainnet-facts-operators-must-know) before running a mainnet node** — mainnet accepts only legacy (type-0) transactions and does not yet post batches or proofs to L1.
 
 ---
 
@@ -15,7 +15,7 @@ Every deploy target reads a single `NETWORK` variable. Canonical per-network val
 | Network | `NETWORK=` | L1 | Status |
 |---|---|---|---|
 | Testnet | `testnet` | Sepolia | live |
-| Mainnet | `mainnet` | Ethereum | TBD — values populated post-deploy |
+| Mainnet (Prismo Glass) | `mainnet` | Ethereum | live (2026-10-07) |
 
 Set `NETWORK` once (in `.env`, Helm values, or Terraform var); the templates load `configs/networks/<NETWORK>.env` for chain IDs, first block, contract addresses, and DNS.
 
@@ -73,15 +73,16 @@ cp .env.example .env       # NETWORK=testnet|mainnet + your L1 RPC
 |---|---|---|
 | L1 chain | Sepolia | Ethereum |
 | L1 chain ID | `11155111` | `1` |
-| L2 chain ID | `101001000` | `TBD` |
-| L1 first block (rollup genesis) | `11147580` | `TBD` |
-| Rollup manager (L1) | `0x920A41e4718639f0629407c9C14b0CaC9A266EF6` | `TBD` |
-| GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `TBD` |
-| Gas token (L1) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` (USDC) | `TBD` |
-| Sequencer EOA (L2 coinbase, `--zkevm.address-sequencer`) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `TBD` |
-| Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `TBD` |
-| Public RPC | `https://rpc.glassnet.prismo.network` | `TBD` |
-| Block explorer | `https://explorer.glassnet.prismo.network` | `TBD` |
+| L2 chain ID | `101001000` | `328` |
+| L2 chain name (`--chain`) | `dynamic-glassnet` | `dynamic-glass` |
+| L1 first block (RollupManager deploy) | `11147580` | `26136887` |
+| Rollup manager (L1) | `0x920A41e4718639f0629407c9C14b0CaC9A266EF6` | `0xC2cBC231C486f7732473dD435a60f77e151d227d` |
+| GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
+| Gas token (L1, 18-dec USDC wrapper) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` (test USDC) | `0xCB7B19F31EDda9e857899f99aFd732542079146f` (over real USDC) |
+| Sequencer EOA (L2 coinbase, `--zkevm.address-sequencer`) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
+| Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |
+| Public RPC | `https://rpc.glassnet.prismo.network` | `https://rpc.prismo.network` |
+| Block explorer | `https://explorer.glassnet.prismo.network` | `https://explorer.prismo.network` |
 | Faucet (testnet USDC) | `https://faucet.glassnet.prismo.network` | n/a |
 
 Full table in [docs/02-network-config.md](docs/02-network-config.md). Machine-readable in [`configs/networks/<network>.json`](configs/networks/).

@@ -1,11 +1,12 @@
 apiVersion: v2
 name: prismo-rpc-node
 description: >-
-  Self-serve cdk-erigon RPC node for the Prismo L2 — follows the sequencer's
-  public data stream, re-executes blocks, and serves public JSON-RPC/WS.
-  Read-only: no keys, no sequencing, no proving.
+  Self-serve cdk-erigon RPC node for the Prismo L2 (testnet Glassnet or
+  mainnet Prismo Glass, selected by config.chainName) — follows the
+  sequencer's public data stream, re-executes blocks, and serves public
+  JSON-RPC/WS. Read-only: no keys, no sequencing, no proving.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "v2.61.24"
 keywords:
   - cdk-erigon

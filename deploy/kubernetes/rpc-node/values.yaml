@@ -117,11 +117,9 @@ snapshot:
   url: ""
   sha256: ""
 
-# --- mainnet (TBD) ---
-# Mainnet contracts are not yet deployed. Once they are, populate a sibling
-# deploy/kubernetes/rpc-node/values-mainnet.yaml with the same key shape as
-# above (image.tag may differ; l1ChainId: 1; real L2 chain ID, contract
-# addresses, sequencer/datastream hosts) and pass it with an extra -f flag —
-# do NOT overload this file's keys with `network: mainnet`, since (unlike the
-# legacy pre-chart values.yaml this file replaces) this chart has no
-# `networks.<name>` switch: one values file == one network.
+# --- mainnet ---
+# Mainnet (Prismo Glass, chain 328) is live. Its values live in the sibling
+# file deploy/kubernetes/rpc-node/values-mainnet.yaml — pass THAT with -f
+# instead of this one. One values file == one network: this chart has no
+# `networks.<name>` switch, so never overload this file's keys with
+# `network: mainnet`.

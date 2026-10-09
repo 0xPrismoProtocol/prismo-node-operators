@@ -7,7 +7,7 @@ Prismo is a zk-rollup built with **Polygon CDK Erigon**. L2 transactions are bat
 | Network | L1 | Status |
 |---|---|---|
 | Testnet | Sepolia | live |
-| Mainnet | Ethereum | TBD |
+| Mainnet (Prismo Glass, chain 328) | Ethereum | live since 2026-10-07 — settlement (batches + proofs on L1) not yet enabled, see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know) |
 
 Network-specific chain IDs and contract addresses live in [`configs/networks/`](../configs/networks/).
 
@@ -61,13 +61,13 @@ The trust model is identical on testnet and mainnet. Mainnet raises the *stakes*
 
 - **Sequencer config** — single-instance, operated by Prismo core only.
 - **Aggregator / prover config** — uses HSM-backed keys; permissioned today.
-- **Genesis ceremony scripts** — chains are already live (testnet) or will be deployed by core (mainnet); you join an existing chain.
-- **Token / faucet scripts** — see the upstream Prismo testnet repo.
+- **Genesis ceremony scripts** — both chains are already live; you join an existing chain.
+- **Token / faucet scripts** — testnet-only; mainnet gas is real USDC bridged from Ethereum.
 
 ## Recommended Path
 
 1. Read [docs/01-hardware.md](01-hardware.md) and pick a node role you can host.
-2. Decide which network to target (`testnet` for now, `mainnet` once live).
+2. Decide which network to target (`testnet` or `mainnet`).
 3. Read [docs/02-network-config.md](02-network-config.md) to confirm chain values are current.
 4. Pick a deploy target under [`deploy/`](../deploy/) and follow its README.
 5. Wire monitoring from [`monitoring/`](../monitoring/) into your stack.
