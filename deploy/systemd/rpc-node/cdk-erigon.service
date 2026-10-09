@@ -26,6 +26,7 @@ ExecStart=/usr/local/bin/cdk-erigon \
   --zkevm.l1-first-block=${L1_FIRST_BLOCK} \
   --zkevm.l1-rollup-id=${ROLLUP_ID} \
   --zkevm.datastream-version=${DATASTREAM_VERSION} \
+  --zkevm.l1-block-range=${L1_BLOCK_RANGE} \
   --zkevm.l1-rpc-url=${L1_RPC_URL} \
   --zkevm.l2-datastreamer-url=${DATASTREAM_HOST}:${DATASTREAM_PORT} \
   --zkevm.l2-sequencer-rpc-url=${SEQUENCER_RPC_URL} \

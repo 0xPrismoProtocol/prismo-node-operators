@@ -99,6 +99,7 @@ L1_RPC_URL=https://your-l1-provider.example/your-key
 # Optional overrides:
 # DATASTREAM_HOST=
 # DATASTREAM_PORT=
+# L1_BLOCK_RANGE=1000   # lower if your L1 provider caps eth_getLogs spans (default 2000)
 EOF
   chmod 0640 /etc/prismo/env
   chown root:prismo /etc/prismo/env

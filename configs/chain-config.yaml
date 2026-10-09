@@ -10,9 +10,12 @@ http: true
 externalcl: true
 
 # --- Sync ---
-# 2000 keeps eth_getLogs spans within free/public L1 RPC limits (20000-block
-# spans get rejected -> "L1 syncer (getSequencedLogs) exceeded 20 retries"
-# panic). Raise if you run your own L1 node.
+# 2000 keeps eth_getLogs spans within most L1 RPC limits (20000-block spans
+# get rejected -> "L1 syncer (getSequencedLogs) exceeded 20 retries" panic).
+# Every deploy target also passes --zkevm.l1-block-range=${L1_BLOCK_RANGE}
+# on the CLI (which wins over this file), so operators tune it per host via
+# L1_BLOCK_RANGE in their role .env — lower for capped free providers, raise
+# for a self-hosted L1 node.
 zkevm.l1-block-range: 2000
 zkevm.l1-query-delay: 6000
 

@@ -132,6 +132,7 @@ cdk-erigon flags then come from the active network env:
 --zkevm.l1-chain-id=${L1_CHAIN_ID}
 --zkevm.l1-first-block=${L1_FIRST_BLOCK}
 --zkevm.l1-rollup-id=${ROLLUP_ID}
+--zkevm.l1-block-range=${L1_BLOCK_RANGE}
 --zkevm.l1-rpc-url=${L1_RPC_URL}
 --zkevm.address-rollup=${ROLLUP_CONTRACT}
 --zkevm.address-zkevm=${ROLLUP_CONTRACT}

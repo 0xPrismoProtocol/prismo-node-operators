@@ -98,6 +98,7 @@ services:
       - "--zkevm.l1-first-block=${L1_FIRST_BLOCK}"
       - "--zkevm.l1-rollup-id=${ROLLUP_ID}"
       - "--zkevm.datastream-version=${DATASTREAM_VERSION}"
+      - "--zkevm.l1-block-range=${L1_BLOCK_RANGE}"
       - "--zkevm.l1-rpc-url=http://geth:8545"
       # Must be non-empty — cdk-erigon panics "Flag not set:
       # zkevm.l2-datastreamer-url" if this is blank (ctx.IsSet() treats an

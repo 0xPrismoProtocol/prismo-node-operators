@@ -7,6 +7,7 @@
   "l1_first_block": 11147580,
   "datastream_version": 2,
   "rollup_id": 1,
+  "l1_block_range": 2000,
   "contracts": {
     "rollup_manager": "0x920A41e4718639f0629407c9C14b0CaC9A266EF6",
     "zkevm": "0x920A41e4718639f0629407c9C14b0CaC9A266EF6",
