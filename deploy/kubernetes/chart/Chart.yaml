@@ -7,7 +7,7 @@ description: >-
   JSON-RPC/WS. Read-only: no keys, no sequencing, no proving.
 type: application
 version: 0.2.0
-appVersion: "v2.61.24"
+appVersion: "v2.61.24-legacyonly"
 keywords:
   - cdk-erigon
   - polygon-cdk

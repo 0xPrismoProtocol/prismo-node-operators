@@ -27,11 +27,17 @@
 network: testnet
 
 image:
-  repository: ghcr.io/0xpolygon/cdk-erigon
-  tag: v2.61.24
-  # Pin by index digest so a re-pushed tag can't change the running image.
-  # Verified against ghcr 2026-07-20. Update alongside tag; blank to skip.
-  digest: sha256:cf93eff2be9744e12b0ce96ba48c9fe43b30e44a1f9f54f3a34d4039f363b2ab
+  # Prismo build of cdk-erigon v2.61.24: txpool rejects typed txs and the RPC
+  # layer hides EIP-1559 so default wallets build type-0 (both Prismo chains
+  # accept only legacy txs). Source: github.com/0xPrismoProtocol/cdk-erigon,
+  # branch prismo/v2.61.24-no-typed-tx @ 8157e15. Upstream
+  # ghcr.io/0xpolygon/cdk-erigon:v2.61.24 syncs identically but advertises
+  # EIP-1559 to your users — see docs/02-network-config.md.
+  repository: ghcr.io/0xprismoprotocol/cdk-erigon
+  tag: v2.61.24-legacyonly
+  # Pin by digest so a re-pushed tag can't change the running image (single
+  # linux/amd64 manifest). Update alongside tag; blank to skip.
+  digest: sha256:76621246963228e6fb32cc569bccb24506c566a7491389634ce24cf02f22d30f
   pullPolicy: IfNotPresent
 
 replicaCount: 1

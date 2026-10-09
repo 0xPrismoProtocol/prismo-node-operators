@@ -241,7 +241,7 @@ Every role ships all four targets; the chosen target does not change the role's 
 ## 9. Open Items
 
 - **Mainnet settlement:** batches/proofs are not yet posted to L1 on mainnet (chain 328); the virtual/verified finality tiers (§5, docs/05-integration.md) do not advance there until the core team enables settlement. The 1,000-USDC genesis prefund (docs/02-network-config.md) is unbacked on L1 until then.
-- **Mainnet image:** the pinned upstream `cdk-erigon:v2.61.24` advertises EIP-1559 although the chain accepts only type-0 txs; a public build of the Prismo RPC-layer patch is pending.
+- **Image:** every target pins the Prismo build `ghcr.io/0xprismoprotocol/cdk-erigon:v2.61.24-legacyonly` (LGPL-3.0 source: `0xPrismoProtocol/cdk-erigon` @ `8157e15`); upstream `v2.61.24` remains sync-compatible but advertises EIP-1559 on a legacy-only chain.
 - **Mainnet snapshots:** not yet published (`https://snapshots.prismo.network` reserved).
 - **Watchtower binary:** `ghcr.io/0xprismoprotocol/watchtower:0.1.0` is a placeholder; binary not yet open-sourced, so the image does not resolve yet.
 - **Public registries:** RPC registry / node registry URLs are TBD.

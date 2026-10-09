@@ -42,13 +42,13 @@ Bump the pinned version and **re-run the installer** — it re-extracts the
 matching musl loader + libstdc++ for the new binary's ABI. A bare binary swap
 would leave the previous version's runtime in `/usr/local/lib/cdk-erigon` (the
 unit pins `LD_LIBRARY_PATH` there). No standalone release binaries are published
-for cdk-erigon — the binary always comes from the pinned `ghcr.io/0xpolygon/cdk-erigon`
+for cdk-erigon — the binary always comes from the pinned `ghcr.io/0xprismoprotocol/cdk-erigon`
 image (from `0xpolygon`, **not** `0xPolygonHermez`). Pass the new version's index
 digest so the install stays digest-pinned:
 
 ```bash
 sudo systemctl stop cdk-erigon
-# Get the digest: docker buildx imagetools inspect ghcr.io/0xpolygon/cdk-erigon:<NEW_VERSION>
+# Get the digest: docker buildx imagetools inspect ghcr.io/0xprismoprotocol/cdk-erigon:<NEW_VERSION>
 CDK_VERSION=<NEW_VERSION> CDK_DIGEST=sha256:<...> NETWORK=testnet sudo bash install.sh   # or NETWORK=mainnet
 sudo systemctl start cdk-erigon
 ```

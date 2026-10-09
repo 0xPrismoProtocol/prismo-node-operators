@@ -5,26 +5,31 @@
 # Usage: NETWORK=testnet sudo bash install.sh   # or NETWORK=mainnet
 set -euo pipefail
 
-CDK_VERSION="${CDK_VERSION:-v2.61.24}"
+# Prismo build of cdk-erigon v2.61.24 (txpool rejects typed txs; RPC layer hides
+# EIP-1559 so default wallets build type-0). Source: github.com/0xPrismoProtocol/
+# cdk-erigon branch prismo/v2.61.24-no-typed-tx @ 8157e15. See
+# docs/02-network-config.md "Mainnet facts operators must know".
+CDK_IMAGE_REPO="${CDK_IMAGE_REPO:-ghcr.io/0xprismoprotocol/cdk-erigon}"
+CDK_VERSION="${CDK_VERSION:-v2.61.24-legacyonly}"
 # Pin by digest, not just the mutable tag: a tag can be re-pushed, a digest
 # cannot. Extracting the binary + musl loader from a digest-pinned image makes
-# the install byte-deterministic. This is the index (multi-arch) manifest digest
-# for v2.61.24, verified against ghcr.io/0xpolygon/cdk-erigon on 2026-07-20.
-CDK_DIGEST_DEFAULT="sha256:cf93eff2be9744e12b0ce96ba48c9fe43b30e44a1f9f54f3a34d4039f363b2ab"
+# the install byte-deterministic. This is the (single linux/amd64) manifest
+# digest for v2.61.24-legacyonly.
+CDK_DIGEST_DEFAULT="sha256:76621246963228e6fb32cc569bccb24506c566a7491389634ce24cf02f22d30f"
 # The pinned digest only applies to the default version. If you bump
 # CDK_VERSION, pass a matching CDK_DIGEST=sha256:... (get it via
-# `docker buildx imagetools inspect ghcr.io/0xpolygon/cdk-erigon:<ver>`);
+# `docker buildx imagetools inspect ${CDK_IMAGE_REPO}:<ver>`);
 # otherwise the install proceeds by mutable tag with a warning.
-if [[ "$CDK_VERSION" == "v2.61.24" ]]; then
+if [[ "$CDK_VERSION" == "v2.61.24-legacyonly" ]]; then
   CDK_DIGEST="${CDK_DIGEST:-$CDK_DIGEST_DEFAULT}"
 else
   CDK_DIGEST="${CDK_DIGEST:-}"
 fi
 if [[ -n "$CDK_DIGEST" ]]; then
-  CDK_IMAGE="ghcr.io/0xpolygon/cdk-erigon@${CDK_DIGEST}"
+  CDK_IMAGE="${CDK_IMAGE_REPO}@${CDK_DIGEST}"
 else
   echo "WARNING: no CDK_DIGEST pinned for $CDK_VERSION — installing by mutable tag (not digest-pinned)." >&2
-  CDK_IMAGE="ghcr.io/0xpolygon/cdk-erigon:${CDK_VERSION}"
+  CDK_IMAGE="${CDK_IMAGE_REPO}:${CDK_VERSION}"
 fi
 CDK_MUSL_LIBDIR="/usr/local/lib/cdk-erigon"
 NETWORK="${NETWORK:-testnet}"
