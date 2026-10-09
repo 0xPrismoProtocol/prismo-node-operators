@@ -29,7 +29,7 @@ Set `NETWORK` once (in `.env`, Helm values, or Terraform var); the templates loa
 | Pick a node type to run | [docs/00-overview.md#node-roles](docs/00-overview.md#node-roles) |
 | Check hardware requirements | [docs/01-hardware.md](docs/01-hardware.md) |
 | Get chain config / contract addresses | [docs/02-network-config.md](docs/02-network-config.md) |
-| Use a snapshot to skip historical sync | [docs/03-snapshots.md](docs/03-snapshots.md) |
+| Use a snapshot to skip historical sync | [docs/03-snapshots.md](docs/03-snapshots.md) (**withdrawn 2026-10-10 — sync from genesis**) |
 | Harden my node | [docs/04-security.md](docs/04-security.md) |
 | Troubleshoot | [docs/troubleshooting.md](docs/troubleshooting.md) |
 | Connect my app/wallet to a node | [docs/05-integration.md](docs/05-integration.md) |

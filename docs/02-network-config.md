@@ -48,7 +48,7 @@ Machine-readable copies: [`configs/networks/testnet.json`](../configs/networks/t
 | Bridge API | `https://bridge.glassnet.prismo.network` | `https://bridge.prismo.network` | Public bridge indexer |
 | Block explorer | `https://explorer.glassnet.prismo.network` | `https://explorer.prismo.network` | Blockscout |
 | Faucet | `https://faucet.glassnet.prismo.network` | n/a | Testnet USDC drip; mainnet gas is real USDC bridged from Ethereum |
-| Snapshots | `https://snapshots.glassnet.prismo.network` | `https://snapshots.prismo.network` (not yet published) | See [03-snapshots.md](03-snapshots.md) |
+| Snapshots | `https://snapshots.glassnet.prismo.network` | `https://snapshots.prismo.network` | **Withdrawn 2026-10-10 — sync from genesis**; see [03-snapshots.md](03-snapshots.md) |
 
 ## Genesis & Allocations
 
