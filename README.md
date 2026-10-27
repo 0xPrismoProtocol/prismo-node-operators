@@ -78,12 +78,13 @@ cp .env.example .env       # NETWORK=testnet|mainnet + your L1 RPC
 | L1 first block (RollupManager deploy) | `11147580` | `26136887` |
 | Rollup manager (L1) | `0x920A41e4718639f0629407c9C14b0CaC9A266EF6` | `0xC2cBC231C486f7732473dD435a60f77e151d227d` |
 | GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
-| Gas token (L1, 18-dec USDC wrapper) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` (test USDC) | `0xCB7B19F31EDda9e857899f99aFd732542079146f` (over real USDC) |
+| Native currency | PRL (Prismo Load), 18 decimals | USDC (18-decimal wrapper) until mainnet's PRL migration |
+| `GAS_TOKEN` (legacy `--zkevm.l1-matic-contract-address` value; not read at runtime) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` (retired USDC18Wrapper) | `0xCB7B19F31EDda9e857899f99aFd732542079146f` (USDC18Wrapper; retired at mainnet's PRL migration) |
 | Sequencer EOA (L2 coinbase, `--zkevm.address-sequencer`) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
 | Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |
 | Public RPC | `https://rpc.glassnet.prismo.network` | `https://rpc.prismo.network` |
 | Block explorer | `https://explorer.glassnet.prismo.network` | `https://explorer.prismo.network` |
-| Faucet (testnet USDC) | `https://faucet.glassnet.prismo.network` | n/a |
+| Faucet (testnet PRL) | `https://faucet.glassnet.prismo.network` | n/a |
 
 Full table in [docs/02-network-config.md](docs/02-network-config.md). Machine-readable in [`configs/networks/<network>.json`](configs/networks/).
 
