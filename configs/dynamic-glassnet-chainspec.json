@@ -17,10 +17,10 @@
   "forkID9FeijoaBlock": 0,
   "homesteadBlock": 0,
   "istanbulBlock": 0,
-  "londonBlock": 0,
+  "londonBlock": 9999999999999999999999999999999999999999999999999,
   "muirGlacierBlock": 0,
   "petersburgBlock": 0,
-  "shanghaiTime": 0,
+  "shanghaiTime": 9999999999999999999999999999999999999999999999999,
   "terminalTotalDifficulty": 58750000000000000000000,
   "terminalTotalDifficultyPassed": false
 }

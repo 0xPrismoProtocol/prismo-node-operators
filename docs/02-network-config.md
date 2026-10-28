@@ -109,6 +109,21 @@ launch-day chain, from the base fee the old chainspec burned.
 - **If you do not:** a node still on the old chainspec is expected to stop with a state-root or bad-block
   error when it reaches the first replayed transaction. Do not run the old chainspec.
 
+### Glassnet restore (chain 101001000)
+
+Glassnet was rebuilt so that it can be proven on Sepolia again: London and Shanghai are now at
+the zk sentinel in `dynamic-glassnet-chainspec.json`, as in Polygon's own zk chainspecs.
+
+- **Unchanged:** the genesis **state root** `0xc2d11ba9f21d1118d695a6462f9d2ee6cf809f18ca68900c0d55ef5d8375801d`,
+  batches 1–134, every transaction hash and every balance (to within each sender's gas).
+- **New:** the genesis **block hash** `0x3cf2dc5ffd062a4aac16288ad519f64a06a8c3a3b35261becb5ee5b29bf285b6`
+  (it was `0xe9f5292e…a727`; confirmed by the 2026-10-28 rehearsal's genesis gate). Every block hash, and every
+  block number from 157,382 on, changed; headers no longer carry `baseFeePerGas`.
+- **To resync:** stop the node; delete its datadir; take this release; run
+  `cd configs && sha256sum -c CHECKSUMS.txt`; start the node.
+- **If you do not:** a node on the old chainspec stops with a state-root mismatch at the first
+  replayed transaction. It does not fork silently.
+
 ## Gas Settings
 
 | Field | Testnet | Mainnet |
