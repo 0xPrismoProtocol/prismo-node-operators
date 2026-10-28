@@ -88,6 +88,23 @@ Prismo Glass (chain 328) went live on 2026-10-07. It is a fork-12 CDK Erigon cha
 
 Operationally: `rpc.prismo.network` serves HTTPS on 443 only (plain `http://` is refused), and the `debug`/`trace` namespaces are not exposed on the reference tier.
 
+### 2026-10 chain rebuild (chain 328)
+
+Glass was rebuilt from genesis so that it can be proven on Ethereum: London and Shanghai
+are now at the zk sentinel in `dynamic-glass-chainspec.json`, as in Polygon's own zk
+chainspecs. L1 and all balances are unchanged.
+
+- **Unchanged:** the genesis **state root** `0x8d57491b40ebea2099f08f34739a780e0cce883253e1d5bd4f19b1728aa8b53f`,
+  every genesis account, and every transaction hash.
+- **New:** the genesis **block hash** `0x1bc44609484ffb59932651ca78fd95e6117f5d7abdafba2064dbf4bc873b4e18`
+  (it was `0x61b3070bb40b8ea563e6dd7974abbf721cdfb538a294c216682d9f97bffb5d59`). Every block hash and number
+  changed, and headers no longer carry `baseFeePerGas`.
+- **To resync:** stop the node; delete its datadir; take this release (the Kubernetes chart carries the same
+  updated chainspec); run `cd configs && sha256sum -c CHECKSUMS.txt`; start the node. It syncs from genesis.
+  No published snapshot applies to the rebuilt chain.
+- **If you do not:** a node on the old chainspec stops with a state-root mismatch at the
+  first replayed transaction. It does not fork silently.
+
 ## Gas Settings
 
 | Field | Testnet | Mainnet |
