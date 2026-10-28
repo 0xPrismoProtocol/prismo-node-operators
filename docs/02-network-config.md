@@ -106,6 +106,8 @@ launch-day chain, from the base fee the old chainspec burned.
   updated chainspec); run `cd configs && sha256sum -c CHECKSUMS.txt`; start the node. It syncs from genesis.
   No published snapshot applies to the rebuilt chain.
 - **Node image:** unchanged (`v2.61.24-legacyonly`). You only need the new chainspec, a datadir wipe, and a resync.
+- **Verify:** `cast block 0 --field hash --rpc-url <your node>` must print
+  `0x1bc44609484ffb59932651ca78fd95e6117f5d7abdafba2064dbf4bc873b4e18`.
 - **If you do not:** a node still on the old chainspec is expected to stop with a state-root or bad-block
   error when it reaches the first replayed transaction. Do not run the old chainspec.
 
@@ -119,10 +121,15 @@ the zk sentinel in `dynamic-glassnet-chainspec.json`, as in Polygon's own zk cha
 - **New:** the genesis **block hash** `0x3cf2dc5ffd062a4aac16288ad519f64a06a8c3a3b35261becb5ee5b29bf285b6`
   (it was `0xe9f5292e…a727`; confirmed by the 2026-10-28 rehearsal's genesis gate). Every block hash, and every
   block number from 157,382 on, changed; headers no longer carry `baseFeePerGas`.
-- **To resync:** stop the node; delete its datadir; take this release; run
-  `cd configs && sha256sum -c CHECKSUMS.txt`; start the node.
-- **If you do not:** a node on the old chainspec stops with a state-root mismatch at the first
-  replayed transaction. It does not fork silently.
+- **To resync:** stop the node; delete its datadir; take this release (the Kubernetes chart carries the same
+  updated chainspec); run `cd configs && sha256sum -c CHECKSUMS.txt`; start the node. It syncs from genesis.
+  No published snapshot applies to the rebuilt chain.
+- **Node image:** unchanged. The kit pins `v2.61.24-legacyonly` for both networks (chart, compose and systemd);
+  you only need the new chainspec, a datadir wipe, and a resync.
+- **Verify:** `cast block 0 --field hash --rpc-url <your node>` must print
+  `0x3cf2dc5ffd062a4aac16288ad519f64a06a8c3a3b35261becb5ee5b29bf285b6`.
+- **If you do not:** a node still on the old chainspec is expected to stop with a state-root or bad-block
+  error when it reaches the first replayed transaction. Do not run the old chainspec.
 
 ## Gas Settings
 
