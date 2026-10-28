@@ -81,7 +81,7 @@ Verify the SHA-256 in [`configs/CHECKSUMS.txt`](../configs/CHECKSUMS.txt) before
 
 Prismo Glass (chain 328) went live on 2026-10-07. It is a fork-12 CDK Erigon chain like testnet, but four things differ from what a generic EVM operator expects:
 
-1. **Legacy (type-0) transactions only.** Fork-12 `batchL2Data` has no typed-transaction encoding, so the sequencer rejects EIP-1559 (type-2) and EIP-2930 (type-1) transactions (`unsupported transaction type`). This repo therefore pins the **Prismo build** `ghcr.io/0xprismoprotocol/cdk-erigon:v2.61.24-legacyonly` (the same image the reference tier runs on both networks): its txpool rejects typed transactions up front, and its RPC layer hides EIP-1559 from clients (no `baseFeePerGas` in headers; `eth_feeHistory` / `eth_maxPriorityFeePerGas` return an error pointing at `eth_gasPrice`), so default wallets build type-0 automatically. Consensus is untouched: it syncs and executes identically to upstream `ghcr.io/0xpolygon/cdk-erigon:v2.61.24`, and datadirs/snapshots are interchangeable. Source (LGPL-3.0): [`0xPrismoProtocol/cdk-erigon`](https://github.com/0xPrismoProtocol/cdk-erigon), branch `prismo/v2.61.24-no-typed-tx`, commit `8157e15`; `cdk-erigon --version` on the image prints that commit. If you run upstream instead, wallets pointed at your node will build type-2 transactions and have them rejected unless they pin `type: 0`. One caveat of the hidden field: served header fields no longer re-hash to the stated block hash (the base fee stays in the consensus header), which only matters to light-client-style verifiers.
+1. **Legacy (type-0) transactions only.** Fork-12 `batchL2Data` has no typed-transaction encoding, so the sequencer rejects EIP-1559 (type-2) and EIP-2930 (type-1) transactions (`unsupported transaction type`). This repo therefore pins the **Prismo build** `ghcr.io/0xprismoprotocol/cdk-erigon:v2.61.24-legacyonly` (the same image the reference tier runs on both networks): its txpool rejects typed transactions up front, and its RPC layer hides EIP-1559 from clients (no `baseFeePerGas` in headers; `eth_feeHistory` / `eth_maxPriorityFeePerGas` return an error pointing at `eth_gasPrice`), so default wallets build type-0 automatically. Consensus is untouched: it syncs and executes identically to upstream `ghcr.io/0xpolygon/cdk-erigon:v2.61.24`, and datadirs/snapshots are interchangeable. Source (LGPL-3.0): [`0xPrismoProtocol/cdk-erigon`](https://github.com/0xPrismoProtocol/cdk-erigon), branch `prismo/v2.61.24-no-typed-tx`, commit `8157e15`; `cdk-erigon --version` on the image prints that commit. If you run upstream instead, wallets pointed at your node will build type-2 transactions and have them rejected unless they pin `type: 0`. On the launch-day chain (before the 2026-10 rebuild below) the base fee stayed in the consensus header, so served header fields did not re-hash to the stated block hash. On the rebuilt chain headers carry no base fee at all (15 fields, no `baseFeePerGas`, no `withdrawalsRoot`).
 2. **Gas price floor: 816 gwei** (`zkevm.reject-low-gas-price-transactions` is on; `default-gas-price` = `max-gas-price` = `816000000000`). In 18-decimal USDC that is ≈0.017 USDC for a 21,000-gas transfer. `eth_gasPrice` on any node returns the right value; do not hardcode lower.
 3. **Settlement is not yet enabled.** No `sequenceBatches` / `verifyBatches` transactions are posted to L1 yet (the core team is enabling this post-launch). Consequences for operators: `zkevm_virtualBatchNumber` stays at `1` and `zkevm_verifiedBatchNumber` at `0` on every node (expected, not a fault); the watchtower's `PrismoSequencerSilent` / `PrismoVerifierSilent` alerts fire permanently; bridge withdrawals L2→L1 cannot be claimed; and a full node in L1-only mode has nothing to derive from (that mode is also blocked upstream — see [nodes/full-node.md](nodes/full-node.md)). The trusted head streamed over the datastream is the only tier today.
 4. **The gas token is a wrapper, not raw USDC.** `--zkevm.l1-matic-contract-address` must be the 18-decimal `USDC18Wrapper` (`0xCB7B19F3…`), never canonical 6-decimal USDC — registering raw USDC breaks gas accounting by 10¹².
@@ -92,18 +92,22 @@ Operationally: `rpc.prismo.network` serves HTTPS on 443 only (plain `http://` is
 
 Glass was rebuilt from genesis so that it can be proven on Ethereum: London and Shanghai
 are now at the zk sentinel in `dynamic-glass-chainspec.json`, as in Polygon's own zk
-chainspecs. L1 and all balances are unchanged.
+chainspec (`params/chainspecs/hermez.json` in cdk-erigon). L1 is unchanged and no user funds are affected.
+Every genesis account and the prefund account's balance and nonce are unchanged. The one balance that differs
+is the sequencer fee recipient's: it now holds the value the prover computes, 2,270,170 wei more than on the
+launch-day chain, from the base fee the old chainspec burned.
 
 - **Unchanged:** the genesis **state root** `0x8d57491b40ebea2099f08f34739a780e0cce883253e1d5bd4f19b1728aa8b53f`,
   every genesis account, and every transaction hash.
 - **New:** the genesis **block hash** `0x1bc44609484ffb59932651ca78fd95e6117f5d7abdafba2064dbf4bc873b4e18`
-  (it was `0x61b3070bb40b8ea563e6dd7974abbf721cdfb538a294c216682d9f97bffb5d59`). Every block hash and number
-  changed, and headers no longer carry `baseFeePerGas`.
+  (it was `0x61b3070bb40b8ea563e6dd7974abbf721cdfb538a294c216682d9f97bffb5d59`). Every block hash changed, and the
+  launch transactions now sit in different (lower) block numbers. Headers no longer carry `baseFeePerGas`.
 - **To resync:** stop the node; delete its datadir; take this release (the Kubernetes chart carries the same
   updated chainspec); run `cd configs && sha256sum -c CHECKSUMS.txt`; start the node. It syncs from genesis.
   No published snapshot applies to the rebuilt chain.
-- **If you do not:** a node on the old chainspec stops with a state-root mismatch at the
-  first replayed transaction. It does not fork silently.
+- **Node image:** unchanged (`v2.61.24-legacyonly`). You only need the new chainspec, a datadir wipe, and a resync.
+- **If you do not:** a node still on the old chainspec is expected to stop with a state-root or bad-block
+  error when it reaches the first replayed transaction. Do not run the old chainspec.
 
 ## Gas Settings
 
