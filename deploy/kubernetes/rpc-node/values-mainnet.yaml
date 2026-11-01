@@ -69,7 +69,8 @@ config:
   # RollupManager (feeds BOTH zkevm.address-rollup and zkevm.address-zkevm).
   addressRollup: "0xC2cBC231C486f7732473dD435a60f77e151d227d"
   addressGerManager: "0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71"
-  # USDC18Wrapper (18-decimal gas token over canonical USDC) — not raw USDC.
+  # Legacy flag, not read at runtime (docs/02-network-config.md note 4): keeps the
+  # USDC18Wrapper address; unchanged by the PRL gas-token migration.
   l1MaticContractAddress: "0xCB7B19F31EDda9e857899f99aFd732542079146f"
   addressSequencer: "0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783"
   addressAdmin: "0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783"

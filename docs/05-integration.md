@@ -8,8 +8,8 @@ This assumes you're pointed at either a public reference RPC (`https://rpc.prism
 
 | Network | Chain ID | RPC | Currency |
 |---|---|---|---|
-| Prismo Glass (mainnet) | `328` | `https://rpc.prismo.network` | USDC, **18 decimals** |
-| Glassnet (testnet) | `101001000` | `https://rpc.glassnet.prismo.network` | USDC (test), **18 decimals** |
+| Prismo Glass (mainnet) | `328` | `https://rpc.prismo.network` | USDC, **18 decimals** (PRL after its migration) |
+| Glassnet (testnet) | `101001000` | `https://rpc.glassnet.prismo.network` | PRL (test), **18 decimals** |
 
 > **Mainnet accepts only legacy (type-0) transactions.** Pin `type: 0` in every mainnet transaction you build (ethers: `{ type: 0, gasPrice }`; viem: `type: 'legacy'`). The reference RPC hides EIP-1559 so default wallets do the right thing, but a node run from this repo's upstream image does not — see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know).
 
@@ -50,7 +50,7 @@ export const prismoGlass = defineChain({
 export const glassnetTestnet = defineChain({
   id: 101001000,
   name: "Prismo Glassnet Testnet",
-  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
+  nativeCurrency: { name: "Prismo Load", symbol: "PRL", decimals: 18 },
   rpcUrls: { default: { http: ["https://rpc.glassnet.prismo.network"] } },
 });
 
@@ -62,12 +62,19 @@ console.log(await client.getChainId()); // 328
 
 ## Currency semantics
 
-The chain's **native gas token is USDC — but not canonical 6-decimal USDC.** It's an 18-decimal wrapper (`USDC18Wrapper`, see [docs/02-network-config.md](02-network-config.md#l1-contract-addresses) for the L1 contract address): on mainnet over canonical Ethereum USDC (`0xA0b86991…`), on testnet over an open-mint test token. Symbol and name both read `USDC`, and 1 token displays as `1 USDC` — but:
+The native gas token is **18-decimal** on both networks. It is moving from USDC to **PRL (Prismo Load)** one network at a time:
 
-- **Set `decimals: 18`** in any chain/wallet config (MetaMask "Add Network," viem `defineChain`, etc.). Using `6` (canonical USDC's real decimal count) will misdisplay balances by a factor of 10¹².
-- Gas prices, `eth_getBalance`, and `msg.value` are all denominated in this 18-decimal unit, exactly like ETH on L1 — the only difference from a "normal" chain is the token's name/symbol.
-- **Mainnet:** gas is real USDC. Bridge it in from Ethereum through the bridge contract (`0xB6F28976…`) / `https://bridge.prismo.network`; 1 USDC on L1 becomes 1 USDC (10¹⁸ base units) on L2. Withdrawals back to L1 are not claimable until settlement is enabled (see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know)). The gas floor is 816 gwei ≈ 0.017 USDC per simple transfer.
-- **Testnet:** get funds at `https://faucet.glassnet.prismo.network`. The testnet token is **not** bridgeable 1:1 with real USDC and has no independent value.
+| Network | Native currency | Status |
+|---|---|---|
+| Glassnet (testnet) | PRL (test) | Migrated. Test PRL has no value. |
+| Prismo Glass (mainnet) | USDC (an 18-decimal wrapper over canonical USDC `0xA0b86991…`) | Moves to PRL at its migration |
+
+- **Set `decimals: 18`** in any chain or wallet config (MetaMask "Add Network", viem `defineChain`, etc.). Using `6` (USDC's real decimal count) misdisplays balances by a factor of 10¹².
+- Gas prices, `eth_getBalance` and `msg.value` are all in this 18-decimal unit, exactly like ETH on L1.
+- **PRL** is an ERC-20 on L1 (Sepolia for glassnet; on Ethereum from mainnet's migration). Prismo sells it at **1 USDC per PRL** and **never buys it back**: PRL is not redeemable. To get it, buy on L1 from the PRLIssuer contract: approve USDC, then call `buyWithUSDC(usdcAmount, l2Recipient)`. `usdcAmount` is in USDC's 6-decimal units (the minimum, 1 USDC, is `1000000` and buys 1 PRL = 10¹⁸ base units); `l2Recipient` is the Glass address that receives the PRL. Where your wallet supports it, `buyWithUSDCPermit(usdcAmount, l2Recipient, deadline, v, r, s)` does both steps in one transaction with a USDC permit; Sepolia MockUSDC has no permit, so on testnet always approve first. The bridge UI (`https://app.glassnet.prismo.network` on testnet) does this for you. The PRL is bridged to your Glass address and claimed for you by the network's relayer, so you need no gas on Glass first. If you buy from a Safe or another contract wallet, name a Glass recipient you control: your contract's address on Glass is not automatically yours.
+- **The L2 bridge's `gasTokenAddress()` is the authority** for which token is gas. The L1 rollup contract's `gasTokenAddress()` names the USDC18Wrapper, and keeps naming it after each network's PRL migration; that value has been informational since genesis.
+- **Testnet:** get funds at `https://faucet.glassnet.prismo.network`, or buy test PRL with Sepolia MockUSDC. Test PRL has no value.
+- **Mainnet, until its migration:** the native coin is still USDC-denominated. Prismo's bridge UI accepts no deposits during the switch; do not deposit through the bridge contract directly either. The gas floor is 816 gwei ≈ 0.017 USDC per simple transfer. Withdrawals back to L1 are not claimable until settlement is enabled (see [02-network-config.md](02-network-config.md#mainnet-facts-operators-must-know)).
 
 ## Available RPC namespaces
 

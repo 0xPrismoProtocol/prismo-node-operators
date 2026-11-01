@@ -85,7 +85,7 @@ config:
   # L1 contract addresses (see configs/networks/testnet.env upstream).
   addressRollup: "0x920A41e4718639f0629407c9C14b0CaC9A266EF6"  # feeds BOTH zkevm.address-rollup and zkevm.address-zkevm (RollupManager, not the per-rollup Etrog)
   addressGerManager: "0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF"
-  l1MaticContractAddress: "0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b" # gas-token address; flag name is a legacy holdover
+  l1MaticContractAddress: "0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b" # legacy flag, not read at runtime; keeps the retired USDC18Wrapper (docs/02-network-config.md note 4)
   addressSequencer: "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795"
   addressAdmin: "0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795"
 
