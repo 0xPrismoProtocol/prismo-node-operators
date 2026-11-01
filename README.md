@@ -79,6 +79,7 @@ cp .env.example .env       # NETWORK=testnet|mainnet + your L1 RPC
 | Rollup manager (L1) | `0x920A41e4718639f0629407c9C14b0CaC9A266EF6` | `0xC2cBC231C486f7732473dD435a60f77e151d227d` |
 | GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
 | Native currency | PRL (Prismo Load), 18 decimals | USDC (18-decimal wrapper) until mainnet's PRL migration |
+| PRL token (L1) | `0x80cC002d968f2aFdfb7425f4c9441B959245e916` | not deployed yet (mainnet PRL migration pending) |
 | `GAS_TOKEN` (legacy `--zkevm.l1-matic-contract-address` value; not read at runtime) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` (retired USDC18Wrapper) | `0xCB7B19F31EDda9e857899f99aFd732542079146f` (USDC18Wrapper; retired at mainnet's PRL migration) |
 | Sequencer EOA (L2 coinbase, `--zkevm.address-sequencer`) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
 | Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |

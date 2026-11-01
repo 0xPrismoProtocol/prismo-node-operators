@@ -28,6 +28,7 @@ Every deploy target reads `NETWORK=testnet|mainnet` and pulls the matching `*.en
 | Rollup (PolygonZkEVMEtrog, rollupID 1) | `0xFfA25304376eE1274ff6A348400C03f444F22B95` | `0x261ECc4303b184F08bB6bDb43d653Ba4B65Ac956` |
 | GER (Global Exit Root) Manager | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
 | `GAS_TOKEN` → `--zkevm.l1-matic-contract-address` (legacy flag, not read at runtime; the flag does not set the gas token — see note 4 below) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` (retired USDC18Wrapper) | `0xCB7B19F31EDda9e857899f99aFd732542079146f` (USDC18Wrapper over canonical USDC; retired at mainnet's PRL migration) |
+| PRL (L1 ERC-20 of the native currency; the L2 bridge's `gasTokenAddress()`) | `0x80cC002d968f2aFdfb7425f4c9441B959245e916` | not deployed yet (mainnet PRL migration pending) |
 | Sequencer EOA (cdk-erigon `--zkevm.address-sequencer`, L2 coinbase) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
 | Trusted sequencer on L1 (sends `sequenceBatches`; informational) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |
 | Admin EOA | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |

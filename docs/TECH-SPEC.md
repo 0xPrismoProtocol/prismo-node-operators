@@ -88,6 +88,7 @@ A single `NETWORK ∈ {testnet, mainnet}` variable selects all chain-specific va
 | Rollup Etrog (rollupID 1) | `0xFfA25304376eE1274ff6A348400C03f444F22B95` | `0x261ECc4303b184F08bB6bDb43d653Ba4B65Ac956` |
 | GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
 | `GAS_TOKEN` (legacy flag value: the USDC18Wrapper, retired as the gas token at each network's PRL migration) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` | `0xCB7B19F31EDda9e857899f99aFd732542079146f` |
+| PRL token (L1; the L2 bridge's gas token) | `0x80cC002d968f2aFdfb7425f4c9441B959245e916` | not deployed yet |
 | Sequencer EOA (`--zkevm.address-sequencer`, L2 coinbase) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
 | Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |
 | Bridge L1 / L2 | `0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d` | `0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4` |
