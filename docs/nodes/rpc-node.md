@@ -136,7 +136,7 @@ See [docs/04-security.md](../04-security.md). Short version:
 Once running, register at:
 
 - (TBD) Prismo RPC registry — not yet published; open an issue on this repo with your endpoint in the meantime
-- (Optional) [chainlist.org](https://chainlist.org) — mainnet chain ID `328`. The core team files the registry entry at mainnet's PRL migration; its currency is `PRL` (Prismo Load, 18 decimals).
+- (Optional) [chainlist.org](https://chainlist.org) — mainnet chain ID `328`, currency `PRL` (Prismo Load, 18 decimals).
 
 ## Mainnet notes
 

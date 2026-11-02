@@ -88,7 +88,7 @@ A single `NETWORK ∈ {testnet, mainnet}` variable selects all chain-specific va
 | Rollup Etrog (rollupID 1) | `0xFfA25304376eE1274ff6A348400C03f444F22B95` | `0x261ECc4303b184F08bB6bDb43d653Ba4B65Ac956` |
 | GER manager (L1) | `0x8D33cC75066Bcb7A1f584AB77a59Bb97F1bf37BF` | `0xf33FdfB61DAD1a19517DadceD33c6F39e5230C71` |
 | `GAS_TOKEN` (legacy flag value: the USDC18Wrapper, retired as the gas token at each network's PRL migration) | `0xFB42879859F8d31089Ea6A9eBcA6996914aD9F9b` | `0xCB7B19F31EDda9e857899f99aFd732542079146f` |
-| PRL token (L1; the L2 bridge's gas token) | `0x80cC002d968f2aFdfb7425f4c9441B959245e916` | not deployed yet |
+| PRL token (L1; the L2 bridge's gas token) | `0x80cC002d968f2aFdfb7425f4c9441B959245e916` | `0xbB9887F41F4a3181Bc216da0844F880a03901B11` |
 | Sequencer EOA (`--zkevm.address-sequencer`, L2 coinbase) | `0x691E2b6E666827BC87589cb0fA0BA772fd7Ea795` | `0x56Ea07AEf738B2aEa5073Bd9fd236cde08849783` |
 | Trusted sequencer on L1 (sends `sequenceBatches`) | `0xd72FF0b50966AB4886fA59cbbfB55dafe21C1C08` | `0x12eda12aA4D0569Ef96029886E479fa7E9ae41d6` |
 | Bridge L1 / L2 | `0xd7d4F6BFD45C3EaEFde6fAEc0920fBC7E5a71D0d` | `0xB6F289768b02dB5983E41D2BeA04E23e356fEbA4` |
@@ -241,7 +241,7 @@ Every role ships all four targets; the chosen target does not change the role's 
 
 ## 9. Open Items
 
-- **Mainnet settlement:** batches/proofs are not yet posted to L1 on mainnet (chain 328); the virtual/verified finality tiers (§5, docs/05-integration.md) do not advance there until the core team enables settlement. The 1,000-USDC genesis prefund (docs/02-network-config.md) is unbacked on L1 until then.
+- **Mainnet settlement:** batches/proofs are not yet posted to L1 on mainnet (chain 328); the virtual/verified finality tiers (§5, docs/05-integration.md) do not advance there until the core team enables settlement. The 1,000-unit genesis prefund (docs/02-network-config.md) is backed by PRL in the L1 bridge since the PRL migration.
 - **Image:** every target pins the Prismo build `ghcr.io/0xprismoprotocol/cdk-erigon:v2.61.24-legacyonly` (LGPL-3.0 source: `0xPrismoProtocol/cdk-erigon` @ `8157e15`); upstream `v2.61.24` remains sync-compatible but advertises EIP-1559 on a legacy-only chain.
 - **Mainnet snapshots:** not yet published (`https://snapshots.prismo.network` reserved).
 - **Watchtower binary:** `ghcr.io/0xprismoprotocol/watchtower:0.1.0` is a placeholder; binary not yet open-sourced, so the image does not resolve yet.
