@@ -2,7 +2,7 @@
 
 ## What is Prismo
 
-Prismo is a zk-rollup built with **Polygon CDK Erigon**. L2 transactions are batched, posted to L1, and validity-proven by a SNARK. The L2's native gas token is an L1 ERC-20 delivered through the bridge: PRL (Prismo Load) on testnet; on mainnet, USDC through an 18-decimal wrapper until its PRL migration. The same architecture runs on testnet (settling to Sepolia) and mainnet (settling to Ethereum) — operator manifests in this repo accept either via the `NETWORK` variable.
+Prismo is a zk-rollup built with **Polygon CDK Erigon**. L2 transactions are batched, posted to L1, and validity-proven by a SNARK. The L2's native gas token is an L1 ERC-20 delivered through the bridge: PRL (Prismo Load) on both networks. The same architecture runs on testnet (settling to Sepolia) and mainnet (settling to Ethereum) — operator manifests in this repo accept either via the `NETWORK` variable.
 
 | Network | L1 | Status |
 |---|---|---|
@@ -62,7 +62,7 @@ The trust model is identical on testnet and mainnet. Mainnet raises the *stakes*
 - **Sequencer config** — single-instance, operated by Prismo core only.
 - **Aggregator / prover config** — uses HSM-backed keys; permissioned today.
 - **Genesis ceremony scripts** — both chains are already live; you join an existing chain.
-- **Token / faucet scripts** — testnet-only. Testnet gas comes from the faucet or test-PRL purchases; mainnet gas is USDC bridged from Ethereum until its PRL migration, then PRL bought on Ethereum.
+- **Token / faucet scripts** — testnet-only. Testnet gas comes from the faucet or test-PRL purchases; mainnet gas is PRL bought on Ethereum.
 
 ## Recommended Path
 
